@@ -7,18 +7,60 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { width: 95%; max-width: 600px; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+        .container { width: 95%; max-width: 600px; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; }
         .card { padding: 18px; border-radius: 14px; border: 3px solid #f3f4f6; text-align: center; cursor: pointer; font-weight: bold; transition: all 0.2s; background: white; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; min-height: 70px; }
         .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; }
         .selected { border-color: #FEE500; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .matched { opacity: 0.2; cursor: default; background: #e5e7eb !important; border-color: #e5e7eb !important; color: #9ca3af !important; }
+        .matched { opacity: 0.2; cursor: default; background: #e5e7eb !important; border-color: #e5e7eb !important; color: #9ca3af !important; transform: scale(0.95); }
         .mode-card { background: #3C1E1E; color: #FEE500; padding: 20px; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .mode-card:hover { transform: scale(1.03); }
+        
+        /* 상단 상태바 */
+        #statusBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f9fafb; padding: 10px 15px; border-radius: 15px; }
+        
+        /* 코인 박스: 선물 아이콘과 크기 맞춤 */
+        .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1.4rem; display: flex; align-items: center; gap: 4px; }
+        .coin-icon { font-size: 1.6rem; } /* 🎁 아이콘 크기와 맞춤 */
+        
+        /* 오른쪽 상단: 번개(⚡️) - 게이지(1.5배) - 선물(🎁) - 숫자 */
+        .gauge-section { display: flex; align-items: center; gap: 8px; }
+        .gauge-bg { width: 120px; height: 10px; background: #e5e7eb; border-radius: 10px; overflow: hidden; position: relative; } /* 기존 80px에서 120px로 확장 */
+        #gaugeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #FACC15, #EAB308); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 10px; }
+        
+        .reward-box { display: flex; align-items: center; gap: 4px; font-weight: 900; color: #3C1E1E; font-size: 1.4rem; }
+        #giftIcon { font-size: 1.6rem; }
+        #giftCount { color: #e11d48; min-width: 20px; text-align: left; }
+        .energy-icon { font-size: 1.2rem; }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+        .gift-active { animation: shake 0.5s infinite; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div id="statusBar">
+        <div class="coin-box">
+            <span class="coin-icon">🪙</span>
+            <span id="coinCount">0</span>
+        </div>
+        
+        <div class="gauge-section">
+            <span class="energy-icon">⚡️</span>
+            <div class="gauge-bg">
+                <div id="gaugeFill"></div>
+            </div>
+            <div class="reward-box">
+                <span id="giftIcon">🎁</span>
+                <span id="giftCount">0</span>
+            </div>
+        </div>
+    </div>
+
     <div id="mainPage">
         <h1 class="text-3xl font-black text-center mb-8 text-[#3C1E1E]">우진이의 매칭 게임</h1>
         <div id="modeGrid" class="grid gap-4">
@@ -27,7 +69,7 @@
     </div>
 
     <div id="gamePage" style="display:none;">
-        <button onclick="location.reload()" class="mb-4 flex items-center text-[#3C1E1E] font-bold">
+        <button onclick="goToMain()" class="mb-4 flex items-center text-[#3C1E1E] font-bold">
             <span class="mr-1">🏠</span> 처음으로
         </button>
         <h2 id="gameTitle" class="text-2xl font-bold text-center mb-6 text-[#3C1E1E]"></h2>
@@ -39,39 +81,44 @@
 </div>
 
 <script>
-    // ✅ 우진님이 주신 구글 시트 주소가 적용되었습니다.
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
     let gameData = [];
-    let state = { selectedTerm: null, selectedDef: null };
+    
+    let state = {
+        selectedTerm: null,
+        selectedDef: null,
+        coins: parseInt(localStorage.getItem('woojin_coins')) || 0,
+        totalMatchedCount: parseInt(localStorage.getItem('woojin_matched_total')) || 0,
+        giftCount: parseInt(localStorage.getItem('woojin_gift_count')) || 0,
+        maxGauge: 500,
+        maxCoins: 1000000
+    };
 
-    // 구글 시트에서 데이터를 읽어오는 마법
     async function fetchSheetData() {
         try {
             const response = await fetch(sheetUrl);
             const csvText = await response.text();
-            
-            // CSV 파싱 (줄바꿈과 쉼표 기준)
             const rows = csvText.split('\r\n').filter(row => row.trim() !== '').slice(1); 
 
             gameData = rows.map(row => {
-                // 단순 쉼표 분리 (데이터 내부에 쉼표가 없다고 가정)
-                const [title, icon, itemsStr] = row.split(',');
+                const parts = row.split(',');
+                const title = parts[0];
+                const icon = parts[1];
+                const itemsStr = parts.slice(2).join(',');
                 if(!itemsStr) return null;
-
-                // 세미콜론(;)으로 단어쌍 구분, 슬래시(/)로 단어/뜻 구분
                 const items = itemsStr.split(';').map(item => {
                     const [t, d] = item.split('/');
                     return t && d ? { t: t.trim(), d: d.trim() } : null;
                 }).filter(i => i);
-
                 return { title: title.trim(), icon: icon.trim(), items };
             }).filter(d => d);
 
             renderMenu();
+            updateUI(); 
         } catch (e) {
             console.error(e);
-            document.getElementById('modeGrid').innerHTML = "시트 데이터를 불러오지 못했습니다. 주소를 다시 확인해주세요!";
+            document.getElementById('modeGrid').innerHTML = "데이터 로딩 실패";
         }
     }
 
@@ -95,8 +142,8 @@
 
         const tCol = document.getElementById('termsColumn');
         const dCol = document.getElementById('definitionsColumn');
+        tCol.innerHTML = ''; dCol.innerHTML = '';
         
-        // 카드 섞기
         const terms = [...mode.items].sort(() => Math.random() - 0.5);
         const defs = [...mode.items].sort(() => Math.random() - 0.5);
 
@@ -117,6 +164,34 @@
         });
     }
 
+    function goToMain() {
+        document.getElementById('mainPage').style.display = 'block';
+        document.getElementById('gamePage').style.display = 'none';
+    }
+
+    function updateUI() {
+        if (state.coins > state.maxCoins) state.coins = state.maxCoins;
+        document.getElementById('coinCount').innerText = state.coins.toLocaleString();
+        
+        state.giftCount = Math.floor(state.totalMatchedCount / state.maxGauge);
+        const currentProgress = state.totalMatchedCount % state.maxGauge;
+        
+        document.getElementById('giftCount').innerText = state.giftCount;
+        
+        const percent = (currentProgress / state.maxGauge) * 100;
+        document.getElementById('gaugeFill').style.width = percent + '%';
+        
+        localStorage.setItem('woojin_coins', state.coins);
+        localStorage.setItem('woojin_matched_total', state.totalMatchedCount);
+        localStorage.setItem('woojin_gift_count', state.giftCount);
+        
+        if(percent > 90) {
+            document.getElementById('giftIcon').classList.add('gift-active');
+        } else {
+            document.getElementById('giftIcon').classList.remove('gift-active');
+        }
+    }
+
     function selectCard(item, type, el) {
         if(el.classList.contains('matched')) return;
         
@@ -130,18 +205,28 @@
         el.classList.add('selected');
 
         if(state.selectedTerm && state.selectedDef) {
-            // 정답 확인
             if(state.selectedTerm.item.t === state.selectedDef.item.t) {
                 state.selectedTerm.el.classList.add('matched');
                 state.selectedDef.el.classList.add('matched');
+                
+                state.coins += 1;
+                state.totalMatchedCount += 1;
+                
+                if(state.totalMatchedCount % state.maxGauge === 0 && state.totalMatchedCount !== 0) {
+                    setTimeout(() => alert("🎁 대단해요! 500쌍 달성! 선물 숫자가 올라갔어요!"), 100);
+                }
+
+                updateUI();
+                
                 state.selectedTerm = null; state.selectedDef = null;
                 
-                // 모든 카드를 맞췄는지 확인
-                if(document.querySelectorAll('.matched').length === (gameData.find(g => g.title === document.getElementById('gameTitle').innerText).items.length * 2)) {
+                const currentModeItems = gameData.find(g => g.title === document.getElementById('gameTitle').innerText).items.length;
+                const matchedInGame = document.querySelectorAll('.matched').length / 2;
+                
+                if(matchedInGame === currentModeItems) {
                     setTimeout(() => alert("참 잘했어요! 우진이 최고! 👍"), 300);
                 }
             } else {
-                // 오답일 경우 선택 해제
                 setTimeout(() => {
                     if(state.selectedTerm) state.selectedTerm.el.classList.remove('selected');
                     if(state.selectedDef) state.selectedDef.el.classList.remove('selected');

@@ -1,215 +1,157 @@
 <!doctype html>
-<html lang="ko" class="h-full">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>우진이의 매칭 게임 (독립 관리형)</title>
+    <title>우진이의 스마트 매칭 게임</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 기존 스타일 유지 */
-        body { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #FEE500; min-height: 100%; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .status-bar { position: fixed; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
-        .coin-display, .energy-display { background: #3C1E1E; color: #FEE500; padding: 8px 16px; border-radius: 20px; font-weight: bold; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2); display: flex; align-items: center; gap: 8px; }
-        .energy-bar-container { width: 100px; height: 12px; background: #5a3535; border-radius: 6px; overflow: hidden; }
-        .energy-bar-fill { height: 100%; background: #4ade80; width: 0%; transition: width 0.3s ease; }
-        .container { width: 95%; max-width: 800px; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); margin-top: 50px; }
-        .main-title { font-size: 36px; font-weight: bold; color: #3C1E1E; text-align: center; margin-bottom: 30px; }
-        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-        .mode-card { background: #3C1E1E; color: #FEE500; padding: 25px; border-radius: 15px; cursor: pointer; text-align: center; transition: 0.3s; }
-        .mode-card:hover { transform: translateY(-5px); }
-        .game-page, .admin-page { display: none; }
-        .game-area { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .card { padding: 15px; border-radius: 12px; cursor: pointer; text-align: center; border: 3px solid #e9ecef; font-weight: bold; min-height: 60px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .term-card { background: #3C1E1E; color: #FEE500; }
-        .card.selected { border-color: #ffd700; transform: scale(1.05); }
-        .card.matched { opacity: 0.3; cursor: default; background: #ddd !important; color: #888 !important; }
-        .back-button { background: #eee; border: none; padding: 8px 15px; border-radius: 10px; cursor: pointer; margin-bottom: 15px; }
-        .admin-btn { position: fixed; bottom: 20px; right: 20px; background: #3C1E1E; color: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.5; }
+        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { width: 95%; max-width: 600px; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+        .card { padding: 18px; border-radius: 14px; border: 3px solid #f3f4f6; text-align: center; cursor: pointer; font-weight: bold; transition: all 0.2s; background: white; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; min-height: 70px; }
+        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; }
+        .selected { border-color: #FEE500; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .matched { opacity: 0.2; cursor: default; background: #e5e7eb !important; border-color: #e5e7eb !important; color: #9ca3af !important; }
+        .mode-card { background: #3C1E1E; color: #FEE500; padding: 20px; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .mode-card:hover { transform: scale(1.03); }
     </style>
 </head>
 <body>
 
-<div class="status-bar">
-    <div class="coin-display">🪙 <span id="coinScore">0</span></div>
-    <div class="energy-display">
-        💪 <div class="energy-bar-container"><div class="energy-bar-fill" id="energyBarFill"></div></div>
-        🎁 <span id="couponCount">0</span>
-    </div>
-</div>
-
 <div class="container">
-    <main id="mainPage">
-        <h1 class="main-title">우진이의 매칭 게임</h1>
-        <div class="mode-grid" id="modeGrid">
-            </div>
-    </main>
+    <div id="mainPage">
+        <h1 class="text-3xl font-black text-center mb-8 text-[#3C1E1E]">우진이의 매칭 게임</h1>
+        <div id="modeGrid" class="grid gap-4">
+            <p class="text-center text-gray-500">시트에서 단어를 가져오는 중...</p>
+        </div>
+    </div>
 
-    <section id="gamePage" class="game-page">
-        <button class="back-button" onclick="goToMain()">← 돌아가기</button>
-        <h2 id="gameTitle" class="text-2xl font-bold text-center mb-4"></h2>
-        <div class="game-area">
+    <div id="gamePage" style="display:none;">
+        <button onclick="location.reload()" class="mb-4 flex items-center text-[#3C1E1E] font-bold">
+            <span class="mr-1">🏠</span> 처음으로
+        </button>
+        <h2 id="gameTitle" class="text-2xl font-bold text-center mb-6 text-[#3C1E1E]"></h2>
+        <div class="grid grid-cols-2 gap-4">
             <div id="termsColumn" class="flex flex-col gap-3"></div>
             <div id="definitionsColumn" class="flex flex-col gap-3"></div>
         </div>
-    </section>
-
-    <section id="adminPage" class="admin-page">
-        <button class="back-button" onclick="goToMain()">← 돌아가기</button>
-        <h2 class="text-2xl font-bold mb-4">데이터 관리</h2>
-        <textarea id="dataInput" class="w-full h-64 p-4 border rounded mb-4" placeholder="메뉴이름|아이콘|단어/뜻,단어/뜻"></textarea>
-        <button onclick="saveData()" class="w-full bg-black text-white p-4 rounded-xl font-bold">데이터 저장하기</button>
-        <p class="mt-4 text-sm text-gray-500">형식: 메뉴명|아이콘|단어1/뜻1,단어2/뜻2...</p>
-    </section>
+    </div>
 </div>
 
-<div class="admin-btn" onclick="showAdmin()">⚙️</div>
-
 <script>
-    // 1. 직접 관리할 데이터 (Local Storage 사용)
-    // 캔바가 잊어버려도 브라우저에 저장되거나 나중에 구글 시트로 연결 가능
-    let gameData = JSON.parse(localStorage.getItem('woojin_game_data')) || [
-        { title: "과일 익히기", icon: "🍎", items: [{t:"사과", d:"Apple"}, {t:"포도", d:"Grape"}] },
-        { title: "한자 공부", icon: "🏮", items: [{t:"木", d:"나무 목"}, {t:"山", d:"메 산"}] }
-    ];
+    // ✅ 우진님이 주신 구글 시트 주소가 적용되었습니다.
+    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
-    let state = {
-        coins: parseInt(localStorage.getItem('coins')) || 0,
-        selectedTerm: null,
-        selectedDef: null,
-        matched: []
-    };
+    let gameData = [];
+    let state = { selectedTerm: null, selectedDef: null };
 
-    // 2. 화면 초기화
-    function init() {
+    // 구글 시트에서 데이터를 읽어오는 마법
+    async function fetchSheetData() {
+        try {
+            const response = await fetch(sheetUrl);
+            const csvText = await response.text();
+            
+            // CSV 파싱 (줄바꿈과 쉼표 기준)
+            const rows = csvText.split('\r\n').filter(row => row.trim() !== '').slice(1); 
+
+            gameData = rows.map(row => {
+                // 단순 쉼표 분리 (데이터 내부에 쉼표가 없다고 가정)
+                const [title, icon, itemsStr] = row.split(',');
+                if(!itemsStr) return null;
+
+                // 세미콜론(;)으로 단어쌍 구분, 슬래시(/)로 단어/뜻 구분
+                const items = itemsStr.split(';').map(item => {
+                    const [t, d] = item.split('/');
+                    return t && d ? { t: t.trim(), d: d.trim() } : null;
+                }).filter(i => i);
+
+                return { title: title.trim(), icon: icon.trim(), items };
+            }).filter(d => d);
+
+            renderMenu();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('modeGrid').innerHTML = "시트 데이터를 불러오지 못했습니다. 주소를 다시 확인해주세요!";
+        }
+    }
+
+    function renderMenu() {
         const grid = document.getElementById('modeGrid');
         grid.innerHTML = '';
         gameData.forEach((mode, idx) => {
-            const card = document.createElement('div');
-            card.className = 'mode-card';
-            card.innerHTML = `<div class="text-4xl mb-2">${mode.icon}</div><div class="font-bold">${mode.title}</div>`;
-            card.onclick = () => startGame(idx);
-            grid.appendChild(card);
+            const div = document.createElement('div');
+            div.className = 'mode-card';
+            div.innerHTML = `<div class="text-3xl mb-1">${mode.icon}</div><div class="font-bold text-lg">${mode.title}</div>`;
+            div.onclick = () => startGame(idx);
+            grid.appendChild(div);
         });
-        updateStatus();
     }
 
-    // 3. 게임 로직
     function startGame(idx) {
         const mode = gameData[idx];
         document.getElementById('mainPage').style.display = 'none';
         document.getElementById('gamePage').style.display = 'block';
-        document.getElementById('gameTitle').textContent = mode.title;
+        document.getElementById('gameTitle').innerText = mode.title;
 
-        state.matched = [];
-        renderCards(mode.items);
-    }
-
-    function renderCards(items) {
         const tCol = document.getElementById('termsColumn');
         const dCol = document.getElementById('definitionsColumn');
-        tCol.innerHTML = ''; dCol.innerHTML = '';
+        
+        // 카드 섞기
+        const terms = [...mode.items].sort(() => Math.random() - 0.5);
+        const defs = [...mode.items].sort(() => Math.random() - 0.5);
 
-        const shuffledTerms = [...items].sort(() => Math.random() - 0.5);
-        const shuffledDefs = [...items].sort(() => Math.random() - 0.5);
-
-        shuffledTerms.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card term-card';
-            div.textContent = item.t;
-            div.onclick = () => selectCard(item, 'term', div);
-            tCol.appendChild(div);
+        terms.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card term-card';
+            card.innerText = item.t;
+            card.onclick = () => selectCard(item, 'term', card);
+            tCol.appendChild(card);
         });
 
-        shuffledDefs.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.textContent = item.d;
-            div.onclick = () => selectCard(item, 'def', div);
-            dCol.appendChild(div);
+        defs.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerText = item.d;
+            card.onclick = () => selectCard(item, 'def', card);
+            dCol.appendChild(card);
         });
     }
 
     function selectCard(item, type, el) {
-        if (el.classList.contains('matched')) return;
-
-        if (type === 'term') {
+        if(el.classList.contains('matched')) return;
+        
+        if(type === 'term') {
             document.querySelectorAll('.term-card').forEach(c => c.classList.remove('selected'));
-            state.selectedTerm = item;
+            state.selectedTerm = { item, el };
         } else {
             document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected'));
-            state.selectedDef = item;
+            state.selectedDef = { item, el };
         }
         el.classList.add('selected');
 
-        if (state.selectedTerm && state.selectedDef) {
-            if (state.selectedTerm.t === state.selectedDef.t) {
-                // 정답
-                state.coins += 10;
-                document.querySelectorAll('.selected').forEach(c => {
-                    c.classList.add('matched');
-                    c.classList.remove('selected');
-                });
+        if(state.selectedTerm && state.selectedDef) {
+            // 정답 확인
+            if(state.selectedTerm.item.t === state.selectedDef.item.t) {
+                state.selectedTerm.el.classList.add('matched');
+                state.selectedDef.el.classList.add('matched');
                 state.selectedTerm = null; state.selectedDef = null;
-                updateStatus();
-                checkWin();
+                
+                // 모든 카드를 맞췄는지 확인
+                if(document.querySelectorAll('.matched').length === (gameData.find(g => g.title === document.getElementById('gameTitle').innerText).items.length * 2)) {
+                    setTimeout(() => alert("참 잘했어요! 우진이 최고! 👍"), 300);
+                }
             } else {
-                // 오답
+                // 오답일 경우 선택 해제
                 setTimeout(() => {
-                    document.querySelectorAll('.selected').forEach(c => c.classList.remove('selected'));
+                    if(state.selectedTerm) state.selectedTerm.el.classList.remove('selected');
+                    if(state.selectedDef) state.selectedDef.el.classList.remove('selected');
                     state.selectedTerm = null; state.selectedDef = null;
-                }, 500);
+                }, 400);
             }
         }
     }
 
-    function checkWin() {
-        if (document.querySelectorAll('.matched').length === document.querySelectorAll('.card').length) {
-            alert("축하합니다! 모두 맞혔어요!");
-            goToMain();
-        }
-    }
-
-    // 4. 유틸리티 함수
-    function updateStatus() {
-        document.getElementById('coinScore').textContent = state.coins;
-        localStorage.setItem('coins', state.coins);
-        // 에너지바 로직 등 추가 가능
-    }
-
-    function goToMain() {
-        document.getElementById('mainPage').style.display = 'block';
-        document.getElementById('gamePage').style.display = 'none';
-        document.getElementById('adminPage').style.display = 'none';
-        init();
-    }
-
-    function showAdmin() {
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('adminPage').style.display = 'block';
-        // 현재 데이터를 텍스트로 표시
-        document.getElementById('dataInput').value = gameData.map(m => 
-            `${m.title}|${m.icon}|${m.items.map(i => `${i.t}/${i.d}`).join(',')}`
-        ).join('\n');
-    }
-
-    function saveData() {
-        const text = document.getElementById('dataInput').value;
-        const lines = text.split('\n');
-        const newData = lines.map(line => {
-            const [title, icon, itemStr] = line.split('|');
-            const items = itemStr.split(',').map(i => {
-                const [t, d] = i.split('/');
-                return {t, d};
-            });
-            return {title, icon, items};
-        });
-        gameData = newData;
-        localStorage.setItem('woojin_game_data', JSON.stringify(newData));
-        alert("데이터가 저장되었습니다!");
-        goToMain();
-    }
-
-    init();
+    fetchSheetData();
 </script>
 </body>
 </html>

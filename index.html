@@ -28,7 +28,7 @@
         .done-label { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 0.65rem; color: #4ADE80; font-weight: 900; margin-top: 6px; background: rgba(74, 222, 128, 0.15); padding: 2px 8px; border-radius: 10px; }
         .perfect-badge { font-size: 0.65rem; color: #FFD700; font-weight: 900; margin-top: 2px; }
 
-        /* ✅ 보상 알림 팝업 디자인 */
+        /* ✅ 게이지 보상 알림 팝업 디자인 */
         #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
         #rewardModal h2 { font-size: 2rem; margin-bottom: 10px; color: #16A34A; }
@@ -85,6 +85,7 @@
 </div>
 
 <script>
+    // ✅ 아버님이 주신 최신 구글 앱스 스크립트 주소 적용 완료
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyf6SlbWScDBrv1wXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
@@ -104,10 +105,10 @@
     function playSound(id) { const el = document.getElementById(id); if(el) { el.currentTime = 0; el.play().catch(() => {}); } }
     function playMatchSound() { const idx = (currentPage % 5) + 1; playSound('sndMatch' + idx); }
 
-    // ✅ 수정된 보상 팝업 닫기 함수
+    // ✅ 보상 팝업 닫기 및 화면 즉시 갱신
     function closeRewardModal() { 
         document.getElementById('rewardModal').style.display = 'none'; 
-        updateUI(false); // 팝업을 닫을 때 화면 상단의 코인/선물 숫자를 즉시 갱신합니다.
+        updateUI(false); // 화면 상단 코인/선물 숫자 즉시 갱신
     }
 
     function attachLongPress(el, title, type) {
@@ -136,19 +137,19 @@
 
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     
-    async function syncFromCloud() { try { const res = await fetch(finalScriptUrl); const data = await res.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = (data.maxGauge && Number(data.maxGauge) > 0) ? Number(data.maxGauge) : 500; updateUI(false); } catch (e) { console.error(e); } }
+    async function syncFromCloud() { try { const res = await fetch(finalScriptUrl); const data = await res.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = (data.maxGauge && Number(data.maxGauge) > 0) ? Number(data.maxGauge) : 500; updateUI(false); } catch (e) { console.error("Cloud Sync Error:", e); } }
     
     async function syncToCloud() { 
         try { 
             if (state.totalMatchedCount >= state.maxGauge) { 
                 state.giftCount += 1; 
-                state.coins += 1000; // 코인 보너스 추가
+                state.coins += 1000; // ✅ 코인 +1000 보너스
                 state.totalMatchedCount = 0; 
                 confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } }); 
-                document.getElementById('rewardModal').style.display = 'block'; // 축하 메시지 팝업 노출
+                document.getElementById('rewardModal').style.display = 'block'; // ✅ 보상 팝업 노출
             } 
             await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); 
-        } catch (e) { console.error(e); } 
+        } catch (e) { console.error("Cloud Post Error:", e); } 
     }
 
     function updateUI(send = true) { 

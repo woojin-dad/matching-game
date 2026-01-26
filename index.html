@@ -28,12 +28,13 @@
         .done-label { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 0.65rem; color: #4ADE80; font-weight: 900; margin-top: 6px; background: rgba(74, 222, 128, 0.15); padding: 2px 8px; border-radius: 10px; }
         .perfect-badge { font-size: 0.65rem; color: #FFD700; font-weight: 900; margin-top: 2px; }
 
-        /* ✅ 게이지 보상 알림 레이어 */
+        /* ✅ 보상 알림 팝업 디자인 */
         #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-        #rewardModal h2 { font-size: 2rem; margin-bottom: 10px; }
+        #rewardModal h2 { font-size: 2rem; margin-bottom: 10px; color: #16A34A; }
         #rewardModal p { font-size: 1.2rem; font-weight: 900; color: #3C1E1E; margin-bottom: 20px; line-height: 1.4; }
-        #rewardModal button { background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A; }
+        #rewardModal button { background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A; transition: transform 0.1s; }
+        #rewardModal button:active { transform: scale(0.95); }
 
         #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
@@ -103,7 +104,11 @@
     function playSound(id) { const el = document.getElementById(id); if(el) { el.currentTime = 0; el.play().catch(() => {}); } }
     function playMatchSound() { const idx = (currentPage % 5) + 1; playSound('sndMatch' + idx); }
 
-    function closeRewardModal() { document.getElementById('rewardModal').style.display = 'none'; }
+    // ✅ 수정된 보상 팝업 닫기 함수
+    function closeRewardModal() { 
+        document.getElementById('rewardModal').style.display = 'none'; 
+        updateUI(false); // 팝업을 닫을 때 화면 상단의 코인/선물 숫자를 즉시 갱신합니다.
+    }
 
     function attachLongPress(el, title, type) {
         let pressTimer;
@@ -137,10 +142,10 @@
         try { 
             if (state.totalMatchedCount >= state.maxGauge) { 
                 state.giftCount += 1; 
-                state.coins += 1000; // ✅ 코인 +1000 추가
+                state.coins += 1000; // 코인 보너스 추가
                 state.totalMatchedCount = 0; 
                 confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } }); 
-                document.getElementById('rewardModal').style.display = 'block'; // ✅ 메시지 팝업
+                document.getElementById('rewardModal').style.display = 'block'; // 축하 메시지 팝업 노출
             } 
             await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); 
         } catch (e) { console.error(e); } 

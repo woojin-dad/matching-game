@@ -2,241 +2,226 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>우진이의 스마트 매칭 게임</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        .container { width: 95%; max-width: 600px; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; }
-        .card { padding: 18px; border-radius: 14px; border: 3px solid #f3f4f6; text-align: center; cursor: pointer; font-weight: bold; transition: all 0.2s; background: white; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; min-height: 70px; }
-        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; }
-        .selected { border-color: #FEE500; transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .matched { opacity: 0.2; cursor: default; background: #e5e7eb !important; border-color: #e5e7eb !important; color: #9ca3af !important; transform: scale(0.95); }
-        .mode-card { background: #3C1E1E; color: #FEE500; padding: 20px; border-radius: 18px; text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-        .mode-card:hover { transform: scale(1.03); }
-        
-        /* 상단 상태바 */
-        #statusBar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #f9fafb; padding: 10px 15px; border-radius: 15px; }
-        
-        /* 코인 박스: 선물 아이콘과 크기 맞춤 */
-        .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1.4rem; display: flex; align-items: center; gap: 4px; }
-        .coin-icon { font-size: 1.6rem; } /* 🎁 아이콘 크기와 맞춤 */
-        
-        /* 오른쪽 상단: 번개(⚡️) - 게이지(1.5배) - 선물(🎁) - 숫자 */
-        .gauge-section { display: flex; align-items: center; gap: 8px; }
-        .gauge-bg { width: 120px; height: 10px; background: #e5e7eb; border-radius: 10px; overflow: hidden; position: relative; } /* 기존 80px에서 120px로 확장 */
-        #gaugeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #FACC15, #EAB308); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 10px; }
-        
-        .reward-box { display: flex; align-items: center; gap: 4px; font-weight: 900; color: #3C1E1E; font-size: 1.4rem; }
-        #giftIcon { font-size: 1.6rem; }
-        #giftCount { color: #e11d48; min-width: 20px; text-align: left; }
-        .energy-icon { font-size: 1.2rem; }
+        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-y: auto; }
+        .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: 100vh; margin: 10px 0 180px 0; height: auto; }
+        #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .status-left { display: flex; align-items: center; gap: 6px; }
+        .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1rem; display: flex; align-items: center; gap: 3px; }
+        .music-toggle-btn { background: #E5E7EB; border: none; padding: 4px 10px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 0 #9CA3AF; }
+        .home-btn { position: absolute; left: 50%; transform: translateX(-50%); background: #3C1E1E; color: white; padding: 6px 18px; border-radius: 50px; font-size: 0.85rem; font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #000; }
+        .status-right { display: flex; align-items: center; gap: 5px; }
+        .gauge-bg { width: 90px; height: 16px; background: #e5e7eb; border-radius: 10px; overflow: hidden; border: 1px solid #d1d5db; } 
+        #gaugeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #4ADE80, #16A34A); transition: width 0.4s ease-out; }
+        .reward-box { font-weight: 900; color: #3C1E1E; font-size: 1.1rem; }
+        #mainPage { flex: 1; padding: 10px 5px; }
+        .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; }
+        .category-title { font-size: 1.3rem; font-weight: 900; margin-bottom: 15px; margin-top: 10px; color: #374151; }
+        .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 80px; }
+        .mode-card { background: #3C1E1E; color: #FEE500; aspect-ratio: 1 / 1; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 6px 0 #1a0d0d; padding: 10px; text-align: center; position: relative; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .mode-card:active { transform: translateY(3px); box-shadow: 0 3px 0 #1a0d0d; }
+        .mode-card .title { font-size: 1rem; font-weight: 900; margin-top: 6px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        .done-label { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 0.65rem; color: #4ADE80; font-weight: 900; margin-top: 6px; background: rgba(74, 222, 128, 0.15); padding: 2px 8px; border-radius: 10px; }
+        .perfect-badge { font-size: 0.65rem; color: #FFD700; font-weight: 900; margin-top: 2px; }
 
-        @keyframes shake {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-10deg); }
-            75% { transform: rotate(10deg); }
-        }
-        .gift-active { animation: shake 0.5s infinite; }
+        /* ✅ 게이지 보상 알림 레이어 */
+        #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        #rewardModal h2 { font-size: 2rem; margin-bottom: 10px; }
+        #rewardModal p { font-size: 1.2rem; font-weight: 900; color: #3C1E1E; margin-bottom: 20px; line-height: 1.4; }
+        #rewardModal button { background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A; }
+
+        #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
+        #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
+        #pageIndicator { font-size: 0.85rem; font-weight: 900; background: #3C1E1E; color: #FEE500; padding: 4px 14px; border-radius: 50px; }
+        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(40px, 7vh, 70px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
+        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; box-shadow: 0 4px 0 #1a0d0d; }
+        #definitionsColumn .card { border-color: #d1d5db; color: #3C1E1E; box-shadow: 0 4px 0 #cbd5e1; }
+        .selected { border-color: #FEE500 !important; z-index: 10; transform: translateY(-2px); box-shadow: 0 4px 0 #FEE500 !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        .wrong-impact { animation: shake 0.2s ease-in-out; border-color: #EF4444 !important; background: #FEF2F2 !important; box-shadow: 0 4px 0 #EF4444 !important; }
+        .matched { pointer-events: none; border-color: #FACC15 !important; background: #FEF9C3 !important; opacity: 0.5; transition: all 0.1s; }
     </style>
 </head>
 <body>
+<div id="rewardModal">
+    <h2>🎉 축하합니다! 🎉</h2>
+    <p>게이지를 모두 채웠어요!<br>🎁 선물 1개와<br>🪙 1,000코인을 획득!</p>
+    <button onclick="closeRewardModal()">우와! 고마워요</button>
+</div>
 
 <div class="container">
+    <audio id="bgm" loop></audio>
+    <audio id="sndClick"><source src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndWrong"><source src="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndMatch1"><source src="https://assets.mixkit.co/active_storage/sfx/2573/2573-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndMatch2"><source src="https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndMatch3"><source src="https://assets.mixkit.co/active_storage/sfx/2575/2575-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndMatch4"><source src="https://assets.mixkit.co/active_storage/sfx/2576/2576-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="sndMatch5"><source src="https://assets.mixkit.co/active_storage/sfx/2577/2577-preview.mp3" type="audio/mpeg"></audio>
+
     <div id="statusBar">
-        <div class="coin-box">
-            <span class="coin-icon">🪙</span>
-            <span id="coinCount">0</span>
-        </div>
-        
-        <div class="gauge-section">
-            <span class="energy-icon">⚡️</span>
-            <div class="gauge-bg">
-                <div id="gaugeFill"></div>
-            </div>
-            <div class="reward-box">
-                <span id="giftIcon">🎁</span>
-                <span id="giftCount">0</span>
-            </div>
-        </div>
+        <div class="status-left"><div class="coin-box">🪙 <span id="coinCount">...</span></div><button id="topMusicBtn" class="music-toggle-btn" onclick="toggleBGM()"><span id="musicIcon">🎵</span></button></div>
+        <button id="topHomeBtn" onclick="goToMain()" class="home-btn" style="visibility: hidden;">🏠 홈</button>
+        <div class="status-right"><span class="bolt-icon">⚡</span><div class="gauge-bg"><div id="gaugeFill"></div></div><div class="reward-box">🎁 <span id="giftCount">0</span></div></div>
     </div>
-
+    
     <div id="mainPage">
-        <h1 class="text-3xl font-black text-center mb-8 text-[#3C1E1E]">우진이의 매칭 게임</h1>
-        <div id="modeGrid" class="grid gap-4">
-            <p class="text-center text-gray-500">시트에서 단어를 가져오는 중...</p>
-        </div>
+        <h1 class="text-center my-6 flex items-center justify-center gap-4"><span class="main-title">🧩 우진이의 매칭 게임</span><button onclick="location.reload()" class="text-2xl bg-gray-100 p-2 rounded-full active:bg-gray-300">🔄</button></h1>
+        <div class="category-container mb-8"><div class="category-title text-blue-600">🔄 복습</div><div id="reviewGrid" class="mode-grid"></div></div>
+        <div class="category-container mb-8"><div class="category-title text-green-600">📖 학습</div><div id="studyGrid" class="mode-grid"></div></div>
     </div>
 
-    <div id="gamePage" style="display:none;">
-        <button onclick="goToMain()" class="mb-4 flex items-center text-[#3C1E1E] font-bold">
-            <span class="mr-1">🏠</span> 처음으로
-        </button>
-        <h2 id="gameTitle" class="text-2xl font-bold text-center mb-6 text-[#3C1E1E]"></h2>
-        <div class="grid grid-cols-2 gap-4">
-            <div id="termsColumn" class="flex flex-col gap-3"></div>
-            <div id="definitionsColumn" class="flex flex-col gap-3"></div>
-        </div>
+    <div id="gamePage">
+        <div class="game-header"><h2 id="gameTitle"></h2><div id="pageIndicator"></div></div>
+        <div class="game-board-wrapper"><div class="grid grid-cols-2 gap-x-2 gap-y-3 w-full" id="gameGrid"><div id="termsColumn" class="flex flex-col gap-y-3"></div><div id="definitionsColumn" class="flex flex-col gap-y-3"></div></div></div>
     </div>
 </div>
 
 <script>
+    const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyf6SlbWScDBrv1wXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
-    let gameData = [];
+    let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
+    let gameData = [], currentIdx = null, currentPage = 0, allCurrentItems = [];
+    let wrongDB = JSON.parse(localStorage.getItem('woojin_wrong_v3')) || {};
+    let doneDB = JSON.parse(localStorage.getItem('woojin_done_v1')) || {};
+    let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
+
+    const playlist = ["https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"];
+    const bgm = document.getElementById('bgm');
+    bgm.volume = 0.15;
     
-    let state = {
-        selectedTerm: null,
-        selectedDef: null,
-        coins: parseInt(localStorage.getItem('woojin_coins')) || 0,
-        totalMatchedCount: parseInt(localStorage.getItem('woojin_matched_total')) || 0,
-        giftCount: parseInt(localStorage.getItem('woojin_gift_count')) || 0,
-        maxGauge: 500,
-        maxCoins: 1000000
-    };
+    function playRandomBGM() { const track = playlist[Math.floor(Math.random() * playlist.length)]; if(bgm.src !== track) bgm.src = track; bgm.play().catch(() => {}); }
+    function changeBGM() { if (!bgm.paused) playRandomBGM(); }
+    function toggleBGM() { if (bgm.paused) { if (!bgm.src) playRandomBGM(); else bgm.play(); document.getElementById('musicIcon').innerText = '🎵'; document.getElementById('topMusicBtn').style.background = "#E5E7EB"; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; document.getElementById('topMusicBtn').style.background = "#FCA5A5"; } }
+    function playSound(id) { const el = document.getElementById(id); if(el) { el.currentTime = 0; el.play().catch(() => {}); } }
+    function playMatchSound() { const idx = (currentPage % 5) + 1; playSound('sndMatch' + idx); }
 
-    async function fetchSheetData() {
-        try {
-            const response = await fetch(sheetUrl);
-            const csvText = await response.text();
-            const rows = csvText.split('\r\n').filter(row => row.trim() !== '').slice(1); 
+    function closeRewardModal() { document.getElementById('rewardModal').style.display = 'none'; }
 
-            gameData = rows.map(row => {
-                const parts = row.split(',');
-                const title = parts[0];
-                const icon = parts[1];
-                const itemsStr = parts.slice(2).join(',');
-                if(!itemsStr) return null;
-                const items = itemsStr.split(';').map(item => {
-                    const [t, d] = item.split('/');
-                    return t && d ? { t: t.trim(), d: d.trim() } : null;
-                }).filter(i => i);
-                return { title: title.trim(), icon: icon.trim(), items };
-            }).filter(d => d);
-
-            renderMenu();
-            updateUI(); 
-        } catch (e) {
-            console.error(e);
-            document.getElementById('modeGrid').innerHTML = "데이터 로딩 실패";
-        }
+    function attachLongPress(el, title, type) {
+        let pressTimer;
+        const start = (e) => { pressTimer = setTimeout(() => { const modeName = (type === 'study' ? '학습' : '복습'); if (confirm(`⚠️ [관리자] ${title}의 ${modeName} 기록을 초기화할까요?`)) { 
+            if (type === 'study') { delete doneDB[title + "_study"]; delete perfectDB[title + "_study"]; }
+            else { delete doneDB[title + "_review"]; delete wrongDB[title]; delete perfectDB[title + "_review"]; }
+            localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
+            localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
+            localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
+            renderMenu(); 
+        } }, 2000); };
+        const cancel = () => clearTimeout(pressTimer);
+        el.addEventListener('mousedown', start); el.addEventListener('touchstart', start); el.addEventListener('mouseup', cancel); el.addEventListener('touchend', cancel);
     }
+
+    function shuffle(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
+
+    function distributeDuplicates(items) {
+        const getSound = (str) => str.trim().slice(-1); shuffle(items); const groups = {};
+        items.forEach(item => { const s = getSound(item.d); if(!groups[s]) groups[s] = []; groups[s].push(item); });
+        const pageCount = Math.ceil(items.length / 10); const distributed = Array.from({ length: pageCount }, () => []);
+        Object.values(groups).forEach(group => { group.forEach((item, idx) => { const targetPage = idx % pageCount; distributed[targetPage].push(item); }); });
+        distributed.forEach(page => shuffle(page)); return distributed.flat();
+    }
+
+    function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
+    
+    async function syncFromCloud() { try { const res = await fetch(finalScriptUrl); const data = await res.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = (data.maxGauge && Number(data.maxGauge) > 0) ? Number(data.maxGauge) : 500; updateUI(false); } catch (e) { console.error(e); } }
+    
+    async function syncToCloud() { 
+        try { 
+            if (state.totalMatchedCount >= state.maxGauge) { 
+                state.giftCount += 1; 
+                state.coins += 1000; // ✅ 코인 +1000 추가
+                state.totalMatchedCount = 0; 
+                confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } }); 
+                document.getElementById('rewardModal').style.display = 'block'; // ✅ 메시지 팝업
+            } 
+            await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); 
+        } catch (e) { console.error(e); } 
+    }
+
+    function updateUI(send = true) { 
+        document.getElementById('coinCount').innerText = state.coins.toLocaleString(); 
+        document.getElementById('giftCount').innerText = state.giftCount; 
+        const progress = (state.totalMatchedCount / state.maxGauge) * 100; 
+        document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; 
+        if(send) syncToCloud(); 
+    }
+
+    function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 0.6) { size -= 0.05; el.style.fontSize = size + "rem"; } }
+    async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const items = row[2].split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
     function renderMenu() {
-        const grid = document.getElementById('modeGrid');
-        grid.innerHTML = '';
+        const study = document.getElementById('studyGrid'), review = document.getElementById('reviewGrid');
+        study.innerHTML = ''; review.innerHTML = '';
         gameData.forEach((mode, idx) => {
-            const div = document.createElement('div');
-            div.className = 'mode-card';
-            div.innerHTML = `<div class="text-3xl mb-1">${mode.icon}</div><div class="font-bold text-lg">${mode.title}</div>`;
-            div.onclick = () => startGame(idx);
-            grid.appendChild(div);
+            const sKey = mode.title + "_study", sDate = doneDB[sKey], sPerfectCount = perfectDB[sKey] || 0;
+            const d = document.createElement('div'); d.className = 'mode-card';
+            d.innerHTML = `<div class="text-2xl">${mode.icon}</div><div class="title">${mode.title}</div>
+                           ${sPerfectCount > 0 ? `<div class="perfect-badge">💯 ${sPerfectCount}회</div>` : ''}
+                           ${sDate ? `<div class="done-label">v ${sDate}</div>` : ''}`;
+            d.onclick = () => { state.isPerfect = true; if(bgm.paused && document.getElementById('musicIcon').innerText === '🎵') playRandomBGM(); window.isReviewMode = false; currentIdx = idx; startGame(mode.title, mode.items); };
+            attachLongPress(d, mode.title, 'study'); study.appendChild(d);
+
+            const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], rDate = doneDB[rKey], rPerfectCount = perfectDB[rKey] || 0;
+            const r = document.createElement('div'); r.className = 'mode-card'; r.style.background = "#475569";
+            r.innerHTML = `<div class="text-2xl">${mode.icon}</div><div class="title">${mode.title}</div>
+                           <div style="font-size:0.6rem; color:white; opacity:0.8;">오답:${rItems.length}</div>
+                           ${rPerfectCount > 0 ? `<div class="perfect-badge">💯 ${rPerfectCount}회</div>` : ''}
+                           ${rDate ? `<div class="done-label">v ${rDate}</div>` : ''}`;
+            r.onclick = () => { state.isPerfect = true; if(bgm.paused && document.getElementById('musicIcon').innerText === '🎵') playRandomBGM(); if(rItems.length) { window.isReviewMode = true; currentIdx = idx; startGame(mode.title, rItems); } else alert("완벽해요!"); };
+            attachLongPress(r, mode.title, 'review'); review.appendChild(r);
         });
     }
 
-    function startGame(idx) {
-        const mode = gameData[idx];
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('gamePage').style.display = 'block';
-        document.getElementById('gameTitle').innerText = mode.title;
-
-        const tCol = document.getElementById('termsColumn');
-        const dCol = document.getElementById('definitionsColumn');
-        tCol.innerHTML = ''; dCol.innerHTML = '';
-        
-        const terms = [...mode.items].sort(() => Math.random() - 0.5);
-        const defs = [...mode.items].sort(() => Math.random() - 0.5);
-
-        terms.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card term-card';
-            card.innerText = item.t;
-            card.onclick = () => selectCard(item, 'term', card);
-            tCol.appendChild(card);
-        });
-
-        defs.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'card';
-            card.innerText = item.d;
-            card.onclick = () => selectCard(item, 'def', card);
-            dCol.appendChild(card);
-        });
-    }
-
-    function goToMain() {
-        document.getElementById('mainPage').style.display = 'block';
-        document.getElementById('gamePage').style.display = 'none';
-    }
-
-    function updateUI() {
-        if (state.coins > state.maxCoins) state.coins = state.maxCoins;
-        document.getElementById('coinCount').innerText = state.coins.toLocaleString();
-        
-        state.giftCount = Math.floor(state.totalMatchedCount / state.maxGauge);
-        const currentProgress = state.totalMatchedCount % state.maxGauge;
-        
-        document.getElementById('giftCount').innerText = state.giftCount;
-        
-        const percent = (currentProgress / state.maxGauge) * 100;
-        document.getElementById('gaugeFill').style.width = percent + '%';
-        
-        localStorage.setItem('woojin_coins', state.coins);
-        localStorage.setItem('woojin_matched_total', state.totalMatchedCount);
-        localStorage.setItem('woojin_gift_count', state.giftCount);
-        
-        if(percent > 90) {
-            document.getElementById('giftIcon').classList.add('gift-active');
-        } else {
-            document.getElementById('giftIcon').classList.remove('gift-active');
-        }
-    }
+    function startGame(title, items) { document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; allCurrentItems = distributeDuplicates([...items]); currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
+    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; const pageItems = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; shuffle([...pageItems]).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); shuffle([...pageItems]).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
-        if(el.classList.contains('matched')) return;
-        
-        if(type === 'term') {
-            document.querySelectorAll('.term-card').forEach(c => c.classList.remove('selected'));
-            state.selectedTerm = { item, el };
-        } else {
-            document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected'));
-            state.selectedDef = { item, el };
-        }
+        if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return;
+        playSound('sndClick');
+        if(type === 'term') { document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
+        else { document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');
-
         if(state.selectedTerm && state.selectedDef) {
-            if(state.selectedTerm.item.t === state.selectedDef.item.t) {
-                state.selectedTerm.el.classList.add('matched');
-                state.selectedDef.el.classList.add('matched');
-                
-                state.coins += 1;
-                state.totalMatchedCount += 1;
-                
-                if(state.totalMatchedCount % state.maxGauge === 0 && state.totalMatchedCount !== 0) {
-                    setTimeout(() => alert("🎁 대단해요! 500쌍 달성! 선물 숫자가 올라갔어요!"), 100);
-                }
-
-                updateUI();
-                
-                state.selectedTerm = null; state.selectedDef = null;
-                
-                const currentModeItems = gameData.find(g => g.title === document.getElementById('gameTitle').innerText).items.length;
-                const matchedInGame = document.querySelectorAll('.matched').length / 2;
-                
-                if(matchedInGame === currentModeItems) {
-                    setTimeout(() => alert("참 잘했어요! 우진이 최고! 👍"), 300);
+            const t = state.selectedTerm, d = state.selectedDef;
+            const isMatch = (t.item.t === d.item.t) || (t.item.d.trim().slice(-1) === d.item.d.trim().slice(-1));
+            if(isMatch) {
+                playMatchSound(); t.el.className = 'card matched'; d.el.className = 'card matched';
+                state.coins++; state.totalMatchedCount++; updateUI();
+                state.selectedTerm = state.selectedDef = null;
+                if(window.isReviewMode && currentIdx !== null) { const title = gameData[currentIdx].title; wrongDB[title] = wrongDB[title].filter(w => w.t !== t.item.t); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); }
+                if(document.querySelectorAll('.matched').length === (pageItemsCount() * 2)) {
+                    if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 300); }
+                    else {
+                        const now = new Date(); const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+                        const key = gameData[currentIdx].title + (window.isReviewMode ? "_review" : "_study");
+                        doneDB[key] = dateStr;
+                        if(state.isPerfect) { perfectDB[key] = (perfectDB[key] || 0) + 1; localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); }
+                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
+                        confetti(); setTimeout(() => { changeBGM(); goToMain(); }, 1500);
+                    }
                 }
             } else {
-                setTimeout(() => {
-                    if(state.selectedTerm) state.selectedTerm.el.classList.remove('selected');
-                    if(state.selectedDef) state.selectedDef.el.classList.remove('selected');
-                    state.selectedTerm = null; state.selectedDef = null;
-                }, 400);
+                playSound('sndWrong'); if ("vibrate" in navigator) navigator.vibrate(100);
+                t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact');
+                state.isPerfect = false;
+                if(!window.isReviewMode && currentIdx !== null) { const title = gameData[currentIdx].title; wrongDB[title] = wrongDB[title] || []; if(!wrongDB[title].some(w => w.t === t.item.t)) { wrongDB[title].push(t.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } }
+                setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 250);
             }
         }
     }
-
+    function pageItemsCount() { return allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10).length; }
+    function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
     fetchSheetData();
+    document.getElementById('sndClick').volume = 0.05; document.getElementById('sndWrong').volume = 0.05;
+    for(let i=1; i<=5; i++) { const el = document.getElementById('sndMatch'+i); if(el) el.volume = 0.07; }
 </script>
 </body>
 </html>

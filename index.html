@@ -210,10 +210,36 @@
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 0.6) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
+    // ✅ 정렬 함수 (스마트 정렬 로직)
+    function smartSort(array, modePrefix) {
+        return array.sort((a, b) => {
+            const dateA = doneDB[a.title + modePrefix];
+            const dateB = doneDB[b.title + modePrefix];
+            const countA = (modePrefix === "_study") ? a.items.length : (wrongDB[a.title] || []).length;
+            const countB = (modePrefix === "_study") ? b.items.length : (wrongDB[b.title] || []).length;
+
+            // 1. 날짜가 없는 과목을 가장 앞으로
+            if (!dateA && dateB) return -1;
+            if (dateA && !dateB) return 1;
+
+            // 2. 둘 다 날짜가 없는 경우 -> 매칭쌍 많은 순
+            if (!dateA && !dateB) return countB - countA;
+
+            // 3. 둘 다 날짜가 있는 경우 -> 날짜 오래된 순 (01/28 형식 처리)
+            if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+            // 4. 날짜까지 같은 경우 -> 매칭쌍 많은 순
+            return countB - countA;
+        });
+    }
+
     function renderMenu() {
-        const study = document.getElementById('studyGrid'), review = document.getElementById('reviewGrid');
-        study.innerHTML = ''; review.innerHTML = '';
-        gameData.forEach((mode, idx) => {
+        const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
+        studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
+
+        // ✅ 학습 모드 정렬 및 렌더링
+        const sortedStudyData = smartSort([...gameData], "_study");
+        sortedStudyData.forEach((mode) => {
             const sKey = mode.title + "_study", sDate = doneDB[sKey];
             const d = document.createElement('div'); d.className = 'mode-card';
             d.innerHTML = `<div class="delete-btn" onclick="openResetPopup(event, '${mode.title}', 'study')">×</div>
@@ -221,8 +247,12 @@
                            <div class="info-badge item-count">${mode.items.length}쌍</div>
                            ${sDate ? `<div class="info-badge done-label">v ${sDate}</div>` : ''}`;
             d.onclick = () => { state.isPerfect = true; if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); };
-            study.appendChild(d);
+            studyGrid.appendChild(d);
+        });
 
+        // ✅ 복습 모드 정렬 및 렌더링
+        const sortedReviewData = smartSort([...gameData], "_review");
+        sortedReviewData.forEach((mode) => {
             const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], rDate = doneDB[rKey], rPerfectCount = perfectDB[rKey] || 0;
             const rCount = dailyLimitDB.counts[mode.title] || 0;
             const isLocked = rCount >= 3;
@@ -244,7 +274,7 @@
                 if(rItems.length > 0) startGame(mode.title, rItems, true); 
                 else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); 
             };
-            review.appendChild(r);
+            reviewGrid.appendChild(r);
         });
     }
 

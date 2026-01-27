@@ -27,9 +27,11 @@
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         
-        .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; } /* 아이콘 대폭 확대 */
-        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; } /* 제목 확대 */
-        .item-count { font-size: 0.85rem; color: #FEE500; font-weight: 800; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 10px; margin-top: 8px; } /* 개수 표시 확대 및 강조 */
+        .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
+        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        
+        /* ✅ '몇 쌍' 글씨 크기 1.0rem으로 확대 */
+        .item-count { font-size: 1.0rem; color: #FEE500; font-weight: 900; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 12px; margin-top: 8px; }
 
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10; }
         body.admin-mode .delete-btn { display: flex; }
@@ -223,6 +225,7 @@
 
     function selectCard(item, type, el) {
         if(el.classList.contains('matched')) return;
+        playSound('sndClick');
         if(type === 'term') { document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
         else { document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');

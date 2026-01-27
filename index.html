@@ -23,21 +23,18 @@
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 80px; }
         
-        /* ✅ 과목 카드 구성 요소 크기 확대 */
-        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 220px; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
-        
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
-        /* ✅ '몇 쌍' 글씨 크기 1.0rem으로 확대 */
-        .item-count { font-size: 1.0rem; color: #FEE500; font-weight: 900; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 12px; margin-top: 8px; }
+        .info-badge { font-size: 1.0rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: 12px; margin-top: 6px; width: 90%; }
+        .item-count { color: #FEE500; }
+        .perfect-badge { color: #FFD700; }
+        .done-label { color: #4ADE80; }
 
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10; }
         body.admin-mode .delete-btn { display: flex; }
-
-        .done-label { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 0.75rem; color: #4ADE80; font-weight: 900; margin-top: 6px; background: rgba(74, 222, 128, 0.15); padding: 2px 8px; border-radius: 10px; }
-        .perfect-badge { font-size: 0.75rem; color: #FFD700; font-weight: 900; margin-top: 4px; }
 
         #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
         #resetPopup.show { right: 20px; }
@@ -47,6 +44,9 @@
         .popup-btns button { padding: 8px 18px; border-radius: 12px; font-weight: 900; font-size: 0.9rem; cursor: pointer; border: none; }
         .btn-confirm { background: #EF4444; color: white; }
         .btn-cancel { background: #E5E7EB; color: #4B5563; }
+
+        #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
         #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
@@ -71,10 +71,10 @@
     </div>
 </div>
 
-<div id="rewardModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-    <h2>🎉 축하합니다! 🎉</h2>
-    <p>게이지를 모두 채웠어요!<br>🎁 선물 1개와<br>🪙 1,000코인을 획득!</p>
-    <button onclick="closeRewardModal()" style="background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A;">우와! 고마워요</button>
+<div id="rewardModal">
+    <h2 id="rewardTitle">🎉 축하합니다! 🎉</h2>
+    <p id="rewardModalText">내용</p>
+    <button id="rewardBtn" onclick="closeRewardModal()" style="background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A;">확인</button>
 </div>
 
 <div class="container">
@@ -113,17 +113,16 @@
     const bgm = document.getElementById('bgm');
     function toggleBGM() { if (bgm.paused) { bgm.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; bgm.play(); document.getElementById('musicIcon').innerText = '🎵'; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; } }
 
-    let clickCount = 0;
-    let clickTimer = null;
     function triggerAdminMode() {
-        clickCount++;
-        clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
-        if (clickCount === 5) {
+        if (!window.clickCount) window.clickCount = 0;
+        window.clickCount++;
+        clearTimeout(window.clickTimer);
+        window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000);
+        if (window.clickCount === 5) {
             const isAdmin = document.body.classList.toggle('admin-mode');
             document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none';
             showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success');
-            clickCount = 0;
+            window.clickCount = 0;
         }
     }
 
@@ -138,7 +137,7 @@
         if (type === 'success') {
             btnArea.style.display = 'none';
             popup.classList.add('show');
-            autoCloseTimer = setTimeout(() => closeResetPopup(), 2000);
+            autoCloseTimer = setTimeout(() => closeResetPopup(), 2500);
         } else {
             btnArea.style.display = 'flex';
             popup.classList.add('show');
@@ -150,8 +149,10 @@
         const modeName = (type === 'study' ? '학습' : '복습');
         showToast(`⚠️ ${title}의\n${modeName} 기록을 지울까요?`, 'confirm');
         document.getElementById('btnOk').onclick = () => {
-            if (type === 'study') { delete doneDB[title + "_study"]; delete perfectDB[title + "_study"]; }
-            else { delete doneDB[title + "_review"]; delete wrongDB[title]; delete perfectDB[title + "_review"]; }
+            const sKey = title + "_study";
+            const rKey = title + "_review";
+            if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; }
+            else { delete doneDB[rKey]; delete wrongDB[title]; delete perfectDB[rKey]; }
             localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
             localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
             localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
@@ -180,7 +181,10 @@
     }
     
     async function syncToCloud() { 
-        try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; confetti(); document.getElementById('rewardModal').style.display = 'block'; } 
+        try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; confetti(); 
+            document.getElementById('rewardTitle').innerText = "🎉 축하합니다! 🎉";
+            document.getElementById('rewardModalText').innerHTML = "게이지를 모두 채웠어요!<br>🎁 선물 1개와<br>🪙 1,000코인을 획득!";
+            document.getElementById('rewardModal').style.display = 'block'; } 
             await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); 
         } catch (e) { console.error(e); } 
     }
@@ -200,32 +204,38 @@
         const study = document.getElementById('studyGrid'), review = document.getElementById('reviewGrid');
         study.innerHTML = ''; review.innerHTML = '';
         gameData.forEach((mode, idx) => {
-            const sKey = mode.title + "_study", sDate = doneDB[sKey], sPerfectCount = perfectDB[sKey] || 0;
+            // 학습 카드
+            const sKey = mode.title + "_study", sDate = doneDB[sKey];
             const d = document.createElement('div'); d.className = 'mode-card';
             d.innerHTML = `<div class="delete-btn" onclick="openResetPopup(event, '${mode.title}', 'study')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
-                           <div class="item-count">${mode.items.length}쌍</div>
-                           ${sPerfectCount > 0 ? `<div class="perfect-badge">💯 ${sPerfectCount}회</div>` : ''}${sDate ? `<div class="done-label">v ${sDate}</div>` : ''}`;
-            d.onclick = () => { if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); };
+                           <div class="info-badge item-count">${mode.items.length}쌍</div>
+                           ${sDate ? `<div class="info-badge done-label">v ${sDate}</div>` : ''}`;
+            d.onclick = () => { state.isPerfect = true; if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); };
             study.appendChild(d);
 
+            // 복습 카드
             const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], rDate = doneDB[rKey], rPerfectCount = perfectDB[rKey] || 0;
             const r = document.createElement('div'); r.className = 'mode-card'; r.style.background = "#475569";
             r.innerHTML = `<div class="delete-btn" onclick="openResetPopup(event, '${mode.title}', 'review')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
-                           <div class="item-count">${rItems.length}쌍</div>
-                           ${rPerfectCount > 0 ? `<div class="perfect-badge">💯 ${rPerfectCount}회</div>` : ''}${rDate ? `<div class="done-label">v ${rDate}</div>` : ''}`;
-            r.onclick = () => { if(rItems.length) startGame(mode.title, rItems, true); else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); };
+                           <div class="info-badge item-count">${rItems.length}쌍</div>
+                           ${(rPerfectCount > 0 && rPerfectCount < 5) ? `<div class="info-badge perfect-badge">💯 ${rPerfectCount}회</div>` : ''}
+                           ${rDate ? `<div class="info-badge done-label">v ${rDate}</div>` : ''}`;
+            r.onclick = () => { 
+                state.isPerfect = true; if(bgm.paused) toggleBGM();
+                if(rItems.length > 0) startGame(mode.title, rItems, true); 
+                else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); 
+            };
             review.appendChild(r);
         });
     }
 
-    function startGame(title, items, isReview) { window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; allCurrentItems = shuffle([...items]); currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
-    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; const pageItems = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; shuffle([...pageItems]).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); shuffle([...pageItems]).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
+    function startGame(title, items, isReview) { currentIdx = gameData.findIndex(g => g.title === title); window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; allCurrentItems = [...items].sort(() => Math.random() - 0.5); currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
+    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; const pageItems = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pageItems].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pageItems].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
-        if(el.classList.contains('matched')) return;
-        playSound('sndClick');
+        if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return;
         if(type === 'term') { document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
         else { document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');
@@ -234,18 +244,45 @@
             if(t.item.t === d.item.t) {
                 t.el.className = 'card matched'; d.el.className = 'card matched';
                 state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
-                if(window.isReviewMode) {
-                    const reviewTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
-                    wrongDB[reviewTitle] = (wrongDB[reviewTitle] || []).filter(w => w.t !== t.item.t);
-                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
-                }
-                const pageCount = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10).length;
-                if(document.querySelectorAll('.matched').length === (pageCount * 2)) {
+                const pc = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10).length;
+                if(document.querySelectorAll('.matched').length === (pc * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
-                    else { confetti(); setTimeout(() => goToMain(), 1200); }
+                    else {
+                        const now = new Date(); const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+                        const title = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
+                        const key = title + (window.isReviewMode ? "_review" : "_study");
+                        doneDB[key] = dateStr;
+                        
+                        if(state.isPerfect) {
+                            if(window.isReviewMode) {
+                                perfectDB[key] = (perfectDB[key] || 0) + 1;
+                                if(perfectDB[key] >= 5) {
+                                    state.coins += 100; delete wrongDB[title]; delete perfectDB[key]; // 5회 달성 시 데이터 및 100점 표시 삭제
+                                    confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500'] });
+                                    document.getElementById('rewardTitle').innerText = "🏆 5회 100점 성공!";
+                                    document.getElementById('rewardModalText').innerHTML = `<b>🪙 100코인 획득!</b><br><br>마스터가 되어 오답 리스트와 100점 표시가 정리되었어요!`;
+                                    document.getElementById('rewardModal').style.display = 'block';
+                                } else {
+                                    showToast(`💯 완벽해요! 총 ${perfectDB[key]}회 성공!\n5회를 채우면 100코인 보너스!`, "success");
+                                    confetti();
+                                }
+                            } else {
+                                // 🚀 학습 모드 100점 보너스
+                                state.coins += 100;
+                                showToast("💯 학습 만점! 🪙 100코인 획득!", "success");
+                                confetti();
+                            }
+                        } else {
+                            confetti();
+                        }
+                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
+                        localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
+                        setTimeout(() => { if(document.getElementById('rewardModal').style.display !== 'block') goToMain(); }, 2500);
+                    }
                 }
             } else {
                 t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact');
+                state.isPerfect = false;
                 if(!window.isReviewMode) {
                     const studyTitle = document.getElementById('gameTitle').innerText;
                     if(!wrongDB[studyTitle]) wrongDB[studyTitle] = [];
@@ -256,8 +293,8 @@
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
+    function closeRewardModal() { document.getElementById('rewardModal').style.display = 'none'; updateUI(true); goToMain(); }
     fetchSheetData();
-    function closeRewardModal() { document.getElementById('rewardModal').style.display = 'none'; }
 </script>
 </body>
 </html>

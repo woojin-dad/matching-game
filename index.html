@@ -41,7 +41,7 @@
         .item-count { color: #FEE500; }
         .done-label { color: #4ADE80; }
         .limit-label { color: #CBD5E1; font-size: 0.85rem; }
-        .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; } /* z-index 상향 */
+        .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex; }
         #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
         #resetPopup.show { right: 20px; }
@@ -134,12 +134,8 @@
     function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); clearTimeout(window.autoCloseTimer); text.innerText = message; popup.classList.toggle('success-mode', type === 'success'); if (type === 'success') { btnArea.style.display = 'none'; popup.classList.add('show'); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 2500); } else { btnArea.style.display = 'flex'; popup.classList.add('show'); } }
     function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
     
-    // ✅ 초기화 팝업 함수 수정: stopPropagation 추가
     function openResetPopup(e, title, type) {
-        if(e) {
-            e.preventDefault();
-            e.stopPropagation(); // 💡 카드 클릭 방지 (핵심!)
-        }
+        if(e) { e.preventDefault(); e.stopPropagation(); }
         const modeName = (type === 'study' ? '학습' : '복습');
         showToast(`⚠️ ${title}의\n${modeName} 기록을 지울까요?`, 'confirm');
         document.getElementById('btnOk').onclick = () => {
@@ -169,7 +165,6 @@
             const sKey = mode.title + "_study", sDate = doneDB[sKey], sCount = dailyLimitDB.counts[sKey] || 0;
             const isLocked = sCount >= 1;
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : '');
-            // ✅ X 버튼 onclick에 event 전달 및 stopPropagation 추가
             d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'study')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
                            <div class="info-badge item-count">${mode.items.length}쌍</div>
@@ -184,10 +179,10 @@
             const isLocked = rCount >= 3;
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569";
-            // ✅ X 버튼 onclick에 event 전달 및 stopPropagation 추가
             r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'review')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
                            <div class="info-badge item-count">${rItems.length}쌍</div>
+                           ${rDate ? `<div class="info-badge done-label">v ${rDate}</div>` : ''}
                            ${(rPerfectCount > 0 && rPerfectCount < 5) ? `<div class="info-badge perfect-badge" style="color:#FFD700">💯 ${rPerfectCount}회</div>` : ''}
                            ${isLocked ? `<div class="info-badge limit-label">✅ 복습완료</div>` : ''}`;
             r.onclick = () => { if (isLocked) { showToast("오늘은 충분히 복습했어요!\n내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(mode.title, rItems, true); else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); };

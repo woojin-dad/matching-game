@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
+        html, body { overscroll-behavior-y: contain; }
         body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-y: auto; }
         .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: 100vh; margin: 10px 0 180px 0; height: auto; }
         #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -21,23 +22,27 @@
         #mainPage { flex: 1; padding: 10px 5px; }
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
-        .mode-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 80px; }
         
-        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 220px; }
+        .mode-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); 
+            gap: 16px; 
+            padding-bottom: 80px; 
+            justify-content: center;
+            justify-items: center; 
+        }
+        
+        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 180px; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
-        .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; }
+        .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
-        
         .info-badge { font-size: 1.0rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: 12px; margin-top: 6px; width: 90%; }
         .item-count { color: #FEE500; }
-        .perfect-badge { color: #FFD700; }
         .done-label { color: #4ADE80; }
-        .limit-badge { color: #CBD5E1; font-size: 0.85rem; }
-
-        .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 10; }
+        .limit-label { color: #CBD5E1; font-size: 0.85rem; }
+        .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; } /* z-index 상향 */
         body.admin-mode .delete-btn { display: flex; }
-
         #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
         #resetPopup.show { right: 20px; }
         #resetPopup.success-mode { border-color: #4ADE80; }
@@ -46,10 +51,8 @@
         .popup-btns button { padding: 8px 18px; border-radius: 12px; font-weight: 900; font-size: 0.9rem; cursor: pointer; border: none; }
         .btn-confirm { background: #EF4444; color: white; }
         .btn-cancel { background: #E5E7EB; color: #4B5563; }
-
         #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-
         #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -64,7 +67,6 @@
     </style>
 </head>
 <body>
-
 <div id="resetPopup">
     <p id="popupText">기록을 초기화할까요?</p>
     <div class="popup-btns" id="popupBtnArea">
@@ -72,13 +74,11 @@
         <button class="btn-cancel" onclick="closeResetPopup()">취소</button>
     </div>
 </div>
-
 <div id="rewardModal">
     <h2 id="rewardTitle">🎉 축하합니다! 🎉</h2>
     <p id="rewardModalText">내용</p>
     <button id="rewardBtn" onclick="closeRewardModal()" style="background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A;">확인</button>
 </div>
-
 <div class="container">
     <audio id="bgm" loop></audio>
     <div id="statusBar">
@@ -86,16 +86,13 @@
         <button id="topHomeBtn" onclick="goToMain()" class="home-btn" style="visibility: hidden;">🏠 홈</button>
         <div class="status-right"><span class="bolt-icon">⚡</span><div class="gauge-bg"><div id="gaugeFill"></div></div><div class="reward-box">🎁 <span id="giftCount">0</span></div></div>
     </div>
-    
     <div id="mainPage">
         <h1 class="text-center my-6 flex items-center justify-center gap-4">
             <span class="main-title" onclick="triggerAdminMode()">🧩 우진이의 매칭 게임<span id="adminMark" style="display:none; font-size:1rem; vertical-align:middle;"> 🛠️</span></span>
-            <button onclick="location.reload()" class="text-2xl bg-gray-100 p-2 rounded-full active:bg-gray-300">🔄</button>
         </h1>
         <div class="category-container mb-8"><div class="category-title text-blue-600 border-blue-600">🔄 복습</div><div id="reviewGrid" class="mode-grid"></div></div>
         <div class="category-container mb-8"><div class="category-title text-green-600 border-green-600">📖 학습</div><div id="studyGrid" class="mode-grid"></div></div>
     </div>
-
     <div id="gamePage">
         <div class="game-header"><h2 id="gameTitle"></h2><div id="pageIndicator"></div></div>
         <div class="game-board-wrapper"><div class="grid grid-cols-2 gap-x-2 gap-y-3 w-full" id="gameGrid"><div id="termsColumn" class="flex flex-col gap-y-3"></div><div id="definitionsColumn" class="flex flex-col gap-y-3"></div></div></div>
@@ -107,233 +104,147 @@
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
-    let gameData = [], currentIdx = null, currentPage = 0, allCurrentItems = [];
-    
+    let gameData = [], currentPage = 0, allCurrentItems = [], pagePairs = [];
     let wrongDB = JSON.parse(localStorage.getItem('woojin_wrong_v3')) || {};
     let doneDB = JSON.parse(localStorage.getItem('woojin_done_v1')) || {};
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
-    let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v1')) || { date: "", counts: {} };
+    let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
 
     const todayStr = new Date().toLocaleDateString();
-    if (dailyLimitDB.date !== todayStr) {
-        dailyLimitDB = { date: todayStr, counts: {} };
-        localStorage.setItem('woojin_daily_limit_v1', JSON.stringify(dailyLimitDB));
-    }
+    if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
     const bgm = document.getElementById('bgm');
-    function toggleBGM() { if (bgm.paused) { bgm.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; bgm.play(); document.getElementById('musicIcon').innerText = '🎵'; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; } }
+    function toggleBGM() { if (bgm.paused) { bgm.src = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; bgm.volume = 0.3; bgm.play(); document.getElementById('musicIcon').innerText = '🎵'; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; } }
 
-    function triggerAdminMode() {
-        if (!window.clickCount) window.clickCount = 0;
-        window.clickCount++;
-        clearTimeout(window.clickTimer);
-        window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000);
-        if (window.clickCount === 5) {
-            const isAdmin = document.body.classList.toggle('admin-mode');
-            document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none';
-            showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success');
-            window.clickCount = 0;
-        }
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(type) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'click') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
+        else if (type === 'correct') { osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.2); gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
+        else if (type === 'wrong') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
     }
 
-    let autoCloseTimer = null;
-    function showToast(message, type = 'info') {
-        const popup = document.getElementById('resetPopup');
-        const text = document.getElementById('popupText');
-        const btnArea = document.getElementById('popupBtnArea');
-        clearTimeout(autoCloseTimer);
-        text.innerText = message;
-        popup.classList.toggle('success-mode', type === 'success');
-        if (type === 'success') {
-            btnArea.style.display = 'none';
-            popup.classList.add('show');
-            autoCloseTimer = setTimeout(() => closeResetPopup(), 2500);
-        } else {
-            btnArea.style.display = 'flex';
-            popup.classList.add('show');
-        }
-    }
-
+    async function syncFromCloud() { try { const response = await fetch(finalScriptUrl); const data = await response.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = Number(data.maxGauge) || 500; updateUI(false); } catch (e) {} }
+    async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; confetti(); document.getElementById('rewardModal').style.display = 'block'; } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
+    function updateUI(send = true) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); document.getElementById('giftCount').innerText = state.giftCount; const progress = (state.totalMatchedCount / state.maxGauge) * 100; document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; if(send) syncToCloud(); }
+    function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
+    function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); clearTimeout(window.autoCloseTimer); text.innerText = message; popup.classList.toggle('success-mode', type === 'success'); if (type === 'success') { btnArea.style.display = 'none'; popup.classList.add('show'); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 2500); } else { btnArea.style.display = 'flex'; popup.classList.add('show'); } }
+    function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
+    
+    // ✅ 초기화 팝업 함수 수정: stopPropagation 추가
     function openResetPopup(e, title, type) {
-        e.stopPropagation();
+        if(e) {
+            e.preventDefault();
+            e.stopPropagation(); // 💡 카드 클릭 방지 (핵심!)
+        }
         const modeName = (type === 'study' ? '학습' : '복습');
         showToast(`⚠️ ${title}의\n${modeName} 기록을 지울까요?`, 'confirm');
         document.getElementById('btnOk').onclick = () => {
-            const sKey = title + "_study";
-            const rKey = title + "_review";
-            if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; }
-            else { delete doneDB[rKey]; delete wrongDB[title]; delete perfectDB[rKey]; delete dailyLimitDB.counts[title]; }
+            const sKey = title + "_study", rKey = title + "_review";
+            if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; delete dailyLimitDB.counts[sKey]; }
+            else { delete doneDB[rKey]; delete wrongDB[title]; delete perfectDB[rKey]; delete dailyLimitDB.counts[rKey]; }
             localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
             localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
             localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
-            localStorage.setItem('woojin_daily_limit_v1', JSON.stringify(dailyLimitDB));
+            localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
             closeResetPopup(); renderMenu();
         };
     }
-    function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
 
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
-    
-    async function syncFromCloud() { 
-        try { 
-            const response = await fetch(finalScriptUrl + "?callback=loadData"); 
-            const text = await response.text();
-            const data = JSON.parse(text.match(/loadData\((.*)\)/)[1]);
-            state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; 
-            state.giftCount = Number(data.gifts) || 0; state.maxGauge = data.maxGauge || 500; updateUI(false); 
-        } catch (e) {
-            try {
-                const res = await fetch(finalScriptUrl); const data = await res.json();
-                state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0;
-                state.giftCount = Number(data.gifts) || 0; state.maxGauge = data.maxGauge || 500; updateUI(false);
-            } catch(e2) {}
-        } 
-    }
-    
-    async function syncToCloud() { 
-        try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; confetti(); 
-            document.getElementById('rewardTitle').innerText = "🎉 축하합니다! 🎉";
-            document.getElementById('rewardModalText').innerHTML = "게이지를 모두 채웠어요!<br>🎁 선물 1개와<br>🪙 1,000코인을 획득!";
-            document.getElementById('rewardModal').style.display = 'block'; } 
-            await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); 
-        } catch (e) { console.error(e); } 
-    }
-
-    function updateUI(send = true) { 
-        document.getElementById('coinCount').innerText = state.coins.toLocaleString(); 
-        document.getElementById('giftCount').innerText = state.giftCount; 
-        const progress = (state.totalMatchedCount / state.maxGauge) * 100; 
-        document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; 
-        if(send) syncToCloud(); 
-    }
-
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 0.6) { size -= 0.05; el.style.fontSize = size + "rem"; } }
+
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
-    // ✅ 정렬 함수 (스마트 정렬 로직)
-    function smartSort(array, modePrefix) {
-        return array.sort((a, b) => {
-            const dateA = doneDB[a.title + modePrefix];
-            const dateB = doneDB[b.title + modePrefix];
-            const countA = (modePrefix === "_study") ? a.items.length : (wrongDB[a.title] || []).length;
-            const countB = (modePrefix === "_study") ? b.items.length : (wrongDB[b.title] || []).length;
-
-            // 1. 날짜가 없는 과목을 가장 앞으로
-            if (!dateA && dateB) return -1;
-            if (dateA && !dateB) return 1;
-
-            // 2. 둘 다 날짜가 없는 경우 -> 매칭쌍 많은 순
-            if (!dateA && !dateB) return countB - countA;
-
-            // 3. 둘 다 날짜가 있는 경우 -> 날짜 오래된 순 (01/28 형식 처리)
-            if (dateA !== dateB) return dateA.localeCompare(dateB);
-
-            // 4. 날짜까지 같은 경우 -> 매칭쌍 많은 순
-            return countB - countA;
-        });
-    }
+    function smartSort(array, modePrefix) { return array.sort((a, b) => { const dateA = doneDB[a.title + modePrefix], dateB = doneDB[b.title + modePrefix]; const countA = (modePrefix === "_study") ? a.items.length : (wrongDB[a.title] || []).length, countB = (modePrefix === "_study") ? b.items.length : (wrongDB[b.title] || []).length; if (!dateA && dateB) return -1; if (dateA && !dateB) return 1; if (!dateA && !dateB) return countB - countA; if (dateA !== dateB) return dateA.localeCompare(dateB); return countB - countA; }); }
 
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
-
-        // ✅ 학습 모드 정렬 및 렌더링
-        const sortedStudyData = smartSort([...gameData], "_study");
-        sortedStudyData.forEach((mode) => {
-            const sKey = mode.title + "_study", sDate = doneDB[sKey];
-            const d = document.createElement('div'); d.className = 'mode-card';
-            d.innerHTML = `<div class="delete-btn" onclick="openResetPopup(event, '${mode.title}', 'study')">×</div>
+        
+        smartSort([...gameData], "_study").forEach((mode) => {
+            const sKey = mode.title + "_study", sDate = doneDB[sKey], sCount = dailyLimitDB.counts[sKey] || 0;
+            const isLocked = sCount >= 1;
+            const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : '');
+            // ✅ X 버튼 onclick에 event 전달 및 stopPropagation 추가
+            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'study')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
                            <div class="info-badge item-count">${mode.items.length}쌍</div>
-                           ${sDate ? `<div class="info-badge done-label">v ${sDate}</div>` : ''}`;
-            d.onclick = () => { state.isPerfect = true; if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); };
+                           ${sDate ? `<div class="info-badge done-label">v ${sDate}</div>` : ''}
+                           ${isLocked ? `<div class="info-badge limit-label">✅ 학습완료</div>` : ''}`;
+            d.onclick = () => { if (isLocked) { showToast("오늘은 충분히 학습했어요!\n내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); };
             studyGrid.appendChild(d);
         });
 
-        // ✅ 복습 모드 정렬 및 렌더링
-        const sortedReviewData = smartSort([...gameData], "_review");
-        sortedReviewData.forEach((mode) => {
-            const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], rDate = doneDB[rKey], rPerfectCount = perfectDB[rKey] || 0;
-            const rCount = dailyLimitDB.counts[mode.title] || 0;
+        smartSort([...gameData], "_review").forEach((mode) => {
+            const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], rDate = doneDB[rKey], rPerfectCount = perfectDB[rKey] || 0, rCount = dailyLimitDB.counts[rKey] || 0;
             const isLocked = rCount >= 3;
-
-            const r = document.createElement('div'); 
-            r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            r.style.background = "#475569";
-            r.innerHTML = `<div class="delete-btn" onclick="openResetPopup(event, '${mode.title}', 'review')">×</div>
+            const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
+            r.style.background = isLocked ? "#94a3b8" : "#475569";
+            // ✅ X 버튼 onclick에 event 전달 및 stopPropagation 추가
+            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'review')">×</div>
                            <div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div>
                            <div class="info-badge item-count">${rItems.length}쌍</div>
-                           ${(rPerfectCount > 0 && rPerfectCount < 5) ? `<div class="info-badge perfect-badge">💯 ${rPerfectCount}회</div>` : ''}
-                           <div class="info-badge limit-badge">${isLocked ? '✅ 복습완료' : '🔄 오늘 ' + rCount + '/3'}</div>`;
-            r.onclick = () => { 
-                if (isLocked) {
-                    showToast("오늘은 충분히 복습했어요!\n내일 또 만나요. 😊", 'success');
-                    return;
-                }
-                state.isPerfect = true; if(bgm.paused) toggleBGM();
-                if(rItems.length > 0) startGame(mode.title, rItems, true); 
-                else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); 
-            };
+                           ${(rPerfectCount > 0 && rPerfectCount < 5) ? `<div class="info-badge perfect-badge" style="color:#FFD700">💯 ${rPerfectCount}회</div>` : ''}
+                           ${isLocked ? `<div class="info-badge limit-label">✅ 복습완료</div>` : ''}`;
+            r.onclick = () => { if (isLocked) { showToast("오늘은 충분히 복습했어요!\n내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(mode.title, rItems, true); else showToast("✨ 완벽해요!\n복습할 단어가 없습니다. 👍", 'success'); };
             reviewGrid.appendChild(r);
         });
     }
 
-    function startGame(title, items, isReview) { window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; allCurrentItems = [...items].sort(() => Math.random() - 0.5); currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
-    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; const pageItems = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pageItems].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pageItems].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
+    function startGame(title, items, isReview) {
+        window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible';
+        const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems];
+        while(pool.length > 0) {
+            const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = [];
+            for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } }
+            if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift());
+            distributed.push(...page); pool = nextPool;
+        }
+        allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0);
+    }
+
+    function renderPage(title) { 
+        const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`;
+        pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10);
+        const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = '';
+        [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); });
+        [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); 
+    }
 
     function selectCard(item, type, el) {
         if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return;
-        if(type === 'term') { document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
-        else { document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
+        playSound('click');
+        if(type === 'term') { if(state.selectedTerm && state.selectedTerm.el === el) { el.classList.remove('selected'); state.selectedTerm = null; return; } document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
+        else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');
         if(state.selectedTerm && state.selectedDef) {
             const t = state.selectedTerm, d = state.selectedDef;
-            if(t.item.t === d.item.t) {
-                t.el.className = 'card matched'; d.el.className = 'card matched';
-                state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
-                const pc = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10).length;
-                if(document.querySelectorAll('.matched').length === (pc * 2)) {
+            if(t.item.t === d.item.t || t.item.d === d.item.d) {
+                playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
+                if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
                     else {
-                        const now = new Date(); const dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        const title = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
-                        const key = title + (window.isReviewMode ? "_review" : "_study");
+                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`, title = document.getElementById('gameTitle').innerText.replace("🔄 ", ""), key = title + (window.isReviewMode ? "_review" : "_study");
                         doneDB[key] = dateStr;
-
-                        if (window.isReviewMode) {
-                            dailyLimitDB.counts[title] = (dailyLimitDB.counts[title] || 0) + 1;
-                            localStorage.setItem('woojin_daily_limit_v1', JSON.stringify(dailyLimitDB));
-                        }
-
+                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
-                                if(perfectDB[key] >= 5) {
-                                    state.coins += 100; delete wrongDB[title]; delete perfectDB[key];
-                                    confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 }, colors: ['#FFD700', '#FFA500'] });
-                                    document.getElementById('rewardTitle').innerText = "🏆 5회 100점 성공!";
-                                    document.getElementById('rewardModalText').innerHTML = `<b>🪙 100코인 획득!</b><br><br>마스터가 되어 오답 리스트와 100점 표시가 정리되었어요!`;
-                                    document.getElementById('rewardModal').style.display = 'block';
-                                } else {
-                                    showToast(`💯 완벽해요! 총 ${perfectDB[key]}회 성공!\n5회를 채우면 100코인 보너스!`, "success");
-                                    confetti();
-                                }
-                            } else {
-                                state.coins += 100; showToast("💯 학습 만점! 🪙 100코인 획득!", "success"); confetti();
-                            }
+                                if(perfectDB[key] >= 5) { playSound('master'); state.coins += 100; delete wrongDB[title]; delete perfectDB[key]; confetti(); document.getElementById('rewardTitle').innerText = "🏆 5회 100점 성공!"; document.getElementById('rewardModalText').innerHTML = `<b>🪙 100코인 획득!</b><br><br>마스터가 되어 오답 리스트와 100점 표시가 정리되었어요!`; document.getElementById('rewardModal').style.display = 'block'; }
+                                else { showToast(`💯 완벽해요! 총 ${perfectDB[key]}회 성공!\n5회를 채우면 100코인 보너스!`, "success"); confetti(); }
+                            } else { state.coins += 100; showToast("💯 학습 만점! 🪙 100코인 획득!", "success"); confetti(); }
                         } else { confetti(); }
                         localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
                         setTimeout(() => { if(document.getElementById('rewardModal').style.display !== 'block') goToMain(); }, 2500);
                     }
                 }
             } else {
-                t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact');
-                state.isPerfect = false;
-                if(!window.isReviewMode) {
-                    const studyTitle = document.getElementById('gameTitle').innerText;
-                    if(!wrongDB[studyTitle]) wrongDB[studyTitle] = [];
-                    if(!wrongDB[studyTitle].some(w => w.t === t.item.t)) { wrongDB[studyTitle].push(t.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); }
-                }
+                playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false;
+                if(!window.isReviewMode) { const studyTitle = document.getElementById('gameTitle').innerText; if(!wrongDB[studyTitle]) wrongDB[studyTitle] = []; if(!wrongDB[studyTitle].some(w => w.t === t.item.t)) { wrongDB[studyTitle].push(t.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } }
                 setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400);
             }
         }

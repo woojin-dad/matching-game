@@ -7,9 +7,26 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        html, body { overscroll-behavior-y: contain; }
-        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-y: auto; }
-        .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: 100vh; margin: 10px 0 180px 0; height: auto; }
+        html, body { overscroll-behavior-y: contain; height: 100%; }
+        /* body에서 위아래 노란색 여백이 대칭이 되도록 중앙 정렬을 강화했습니다 */
+        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-y: auto; }
+        
+        /* 컨테이너의 상하 여백을 동일하게(20px) 설정하고 중앙에 배치했습니다 */
+        .container { 
+            width: 96%; 
+            max-width: 700px; 
+            background: white; 
+            padding: 12px; 
+            border-radius: 24px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            margin: 20px auto; 
+            min-height: calc(100vh - 40px); /* 화면 높이에서 위아래 여백만큼 뺌 */
+            height: auto; 
+        }
+
         #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .status-left { display: flex; align-items: center; gap: 6px; }
         .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1rem; display: flex; align-items: center; gap: 3px; }
@@ -22,7 +39,7 @@
         #mainPage { flex: 1; padding: 10px 5px; }
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
-        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 80px; justify-content: center; justify-items: center; }
+        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 180px; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
@@ -45,7 +62,7 @@
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
         #pageIndicator { font-size: 0.85rem; font-weight: 900; background: #3C1E1E; color: #FEE500; padding: 4px 14px; border-radius: 50px; }
-        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(40px, 7vh, 70px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
+        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(50px, 9vh, 90px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
         .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; box-shadow: 0 4px 0 #1a0d0d; }
         #definitionsColumn .card { border-color: #d1d5db; color: #3C1E1E; box-shadow: 0 4px 0 #cbd5e1; }
         .selected { border-color: #FEE500 !important; z-index: 10; transform: translateY(-2px); box-shadow: 0 4px 0 #FEE500 !important; }
@@ -253,7 +270,6 @@
             if(t.item.t === d.item.t || t.item.d === d.item.d) {
                 playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; if(t.el.dataset.everWrong !== "true" && d.el.dataset.everWrong !== "true") { state.realMatchCount++; } updateUI(); state.selectedTerm = state.selectedDef = null;
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
-                    // ✅ 마지막 카드 짝인지 확인 (전체 데이터 개수 기준)
                     const totalMatched = (currentPage * 10) + pagePairs.length;
                     const isLastCardInSubject = totalMatched === allCurrentItems.length;
 
@@ -261,11 +277,7 @@
                         currentPage++; 
                         setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); 
                     } else {
-                        // ✅ 마지막 카드 맞추는 즉시 무조건 날짜 저장
-                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        const title = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
-                        const key = title + (window.isReviewMode ? "_review" : "_study");
-                        
+                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`, title = document.getElementById('gameTitle').innerText.replace("🔄 ", ""), key = title + (window.isReviewMode ? "_review" : "_study");
                         doneDB[key] = dateStr;
                         localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         

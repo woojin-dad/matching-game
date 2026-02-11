@@ -233,7 +233,7 @@
             const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 3; 
             if (rItems.length > 0 || doneDB[rKey]) {
                 const r = document.createElement('div'); 
-                const realLocked = isLocked || rItems.length === 0;
+                const realLocked = isLocked || (rItems.length === 0);
                 r.className = 'mode-card' + (realLocked ? ' locked' : ''); 
                 r.style.background = realLocked ? "#94a3b8" : "#475569"; 
                 r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div><div class="info-badge item-count">${rItems.length}쌍</div>${doneDB[rKey] ? `<div class="info-badge done-label">v ${doneDB[rKey]}</div>` : ''}`; 
@@ -263,11 +263,14 @@
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
                     else {
-                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`, title = document.getElementById('gameTitle').innerText.replace("🔄 ", ""), key = title + (window.isReviewMode ? "_review" : "_study");
+                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+                        const title = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
+                        const key = title + (window.isReviewMode ? "_review" : "_study");
                         
+                        // 1. 즉시 날짜와 카운트 기록
                         doneDB[key] = dateStr;
+                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1;
                         localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
-                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; 
                         localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
 
                         if(state.isPerfect) {
@@ -295,7 +298,7 @@
             } else {
                 playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); t.el.dataset.everWrong = "true"; d.el.dataset.everWrong = "true"; state.isPerfect = false;
                 if(!window.isReviewMode) {
-                    const studyTitle = document.getElementById('gameTitle').innerText;
+                    const studyTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
                     if(!wrongDB[studyTitle]) wrongDB[studyTitle] = [];
                     if(!wrongDB[studyTitle].some(w => w.t === t.item.t)) wrongDB[studyTitle].push(t.item);
                     if(!wrongDB[studyTitle].some(w => w.t === d.item.t)) wrongDB[studyTitle].push(d.item);

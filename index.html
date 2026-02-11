@@ -31,6 +31,27 @@
         .info-badge { font-size: 1.0rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: 12px; margin-top: 6px; width: 90%; }
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex; }
+        #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
+        #resetPopup.show { right: 20px; }
+        #resetPopup.success-mode { border-color: #4ADE80; }
+        #resetPopup p { font-weight: 900; color: #3C1E1E; margin-bottom: 15px; font-size: 1rem; line-height: 1.4; white-space: pre-line; }
+        .popup-btns { display: flex; gap: 8px; justify-content: center; }
+        .popup-btns button { padding: 8px 18px; border-radius: 12px; font-weight: 900; font-size: 0.9rem; cursor: pointer; border: none; }
+        .btn-confirm { background: #EF4444; color: white; }
+        .btn-cancel { background: #E5E7EB; color: #4B5563; }
+        #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
+        #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
+        #pageIndicator { font-size: 0.85rem; font-weight: 900; background: #3C1E1E; color: #FEE500; padding: 4px 14px; border-radius: 50px; }
+        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(40px, 7vh, 70px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
+        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; box-shadow: 0 4px 0 #1a0d0d; }
+        #definitionsColumn .card { border-color: #d1d5db; color: #3C1E1E; box-shadow: 0 4px 0 #cbd5e1; }
+        .selected { border-color: #FEE500 !important; z-index: 10; transform: translateY(-2px); box-shadow: 0 4px 0 #FEE500 !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        .wrong-impact { animation: shake 0.2s ease-in-out; border-color: #EF4444 !important; background: #FEF2F2 !important; box-shadow: 0 4px 0 #EF4444 !important; }
+        .matched { pointer-events: none; border-color: #FACC15 !important; background: #FEF9C3 !important; opacity: 0.5; transition: all 0.1s; }
     </style>
 </head>
 <body>
@@ -178,12 +199,11 @@
     function openResetPopup(e, title, type) {
         if(e) { e.preventDefault(); e.stopPropagation(); }
         const modeName = (type === 'study' ? '학습' : '복습');
-        const cleanTitle = title.trim();
-        showToast(`⚠️ ${cleanTitle}의\n${modeName} 기록을 지울까요?`, 'confirm');
+        showToast(`⚠️ ${title}의\n${modeName} 기록을 지울까요?`, 'confirm');
         document.getElementById('btnOk').onclick = () => {
-            const sKey = cleanTitle + "_study", rKey = cleanTitle + "_review";
+            const sKey = title + "_study", rKey = title + "_review";
             if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; delete dailyLimitDB.counts[sKey]; }
-            else { delete doneDB[rKey]; delete wrongDB[cleanTitle]; delete perfectDB[rKey]; delete dailyLimitDB.counts[rKey]; }
+            else { delete doneDB[rKey]; delete wrongDB[title]; delete perfectDB[rKey]; delete dailyLimitDB.counts[rKey]; }
             localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
             localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
             localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
@@ -197,32 +217,30 @@
 
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
-    function smartSort(array, modePrefix) { return array.sort((a, b) => { const nameA = a.title.trim() + modePrefix, nameB = b.title.trim() + modePrefix; const dateA = doneDB[nameA], dateB = doneDB[nameB]; if (!dateA && dateB) return -1; if (dateA && !dateB) return 1; return 0; }); }
+    function smartSort(array, modePrefix) { return array.sort((a, b) => { const dateA = doneDB[a.title + modePrefix], dateB = doneDB[b.title + modePrefix]; if (!dateA && dateB) return -1; if (dateA && !dateB) return 1; return 0; }); }
 
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         smartSort([...gameData], "_study").forEach((mode) => { 
-            const cleanTitle = mode.title.trim();
-            const sKey = cleanTitle + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
+            const sKey = mode.title + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanTitle}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanTitle}</div><div class="info-badge item-count">${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge done-label">v ${doneDB[sKey]}</div>` : ''}`; 
-            d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; state.realMatchCount = 0; if(bgm.paused) toggleBGM(); startGame(cleanTitle, mode.items, false); }; 
+            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div><div class="info-badge item-count">${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge done-label">v ${doneDB[sKey]}</div>` : ''}`; 
+            d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; state.realMatchCount = 0; if(bgm.paused) toggleBGM(); startGame(mode.title, mode.items, false); }; 
             studyGrid.appendChild(d); 
         });
         smartSort([...gameData], "_review").forEach((mode) => { 
-            const cleanTitle = mode.title.trim();
-            const rKey = cleanTitle + "_review", rItems = wrongDB[cleanTitle] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 3; 
+            const rKey = mode.title + "_review", rItems = wrongDB[mode.title] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 3; 
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
-            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanTitle}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanTitle}</div><div class="info-badge item-count">${rItems.length}쌍</div>${doneDB[rKey] ? `<div class="info-badge done-label">v ${doneDB[rKey]}</div>` : ''}`; 
-            r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; state.realMatchCount = 0; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(cleanTitle, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
+            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${mode.title}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${mode.title}</div><div class="info-badge item-count">${rItems.length}쌍</div>${doneDB[rKey] ? `<div class="info-badge done-label">v ${doneDB[rKey]}</div>` : ''}`; 
+            r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; state.realMatchCount = 0; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(mode.title, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
             reviewGrid.appendChild(r); 
         });
     }
 
-    function startGame(title, items, isReview) { window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title.trim()); window.scrollTo(0, 0); }
-    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title.trim(); document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
+    function startGame(title, items, isReview) { window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
+    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
         if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return;
@@ -235,13 +253,18 @@
             if(t.item.t === d.item.t || t.item.d === d.item.d) {
                 playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; if(t.el.dataset.everWrong !== "true" && d.el.dataset.everWrong !== "true") { state.realMatchCount++; } updateUI(); state.selectedTerm = state.selectedDef = null;
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
-                    if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
-                    else {
+                    // 모든 단어를 다 맞췄는지 확인 (현재 페이지 기준이 아니라 전체 데이터 기준)
+                    const isLastPage = (currentPage + 1) * 10 >= allCurrentItems.length;
+
+                    if(!isLastPage) { 
+                        currentPage++; 
+                        setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); 
+                    } else {
+                        // ✅ 과목 전체의 마지막 카드 짝을 맞추는 순간 무조건 실행
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        const cleanTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
-                        const key = cleanTitle + (window.isReviewMode ? "_review" : "_study");
+                        const title = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
+                        const key = title + (window.isReviewMode ? "_review" : "_study");
                         
-                        // ✅ 완료 시 무조건 날짜 저장 (공백 제거된 cleanTitle 사용)
                         doneDB[key] = dateStr;
                         localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         
@@ -253,18 +276,18 @@
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
                                 if(perfectDB[key] >= 5) {
                                     state.coins += 100; animateCoinIncrease(100);
-                                    showToast(`🔥 대단해! [${cleanTitle}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success");
-                                    delete wrongDB[cleanTitle];
+                                    showToast(`🔥 대단해! [${title}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success");
+                                    delete wrongDB[title];
                                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
                                 } else {
-                                    showToast(`💯 [${cleanTitle}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success");
+                                    showToast(`💯 [${title}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success");
                                 }
                             } else {
                                 state.coins += 100; animateCoinIncrease(100);
-                                showToast(`💯 [${cleanTitle}] 만점 성공!\n🪙 100코인 획득!`, "success");
+                                showToast(`💯 [${title}] 만점 성공!\n🪙 100코인 획득!`, "success");
                             }
                         } else { 
-                            showToast(`👍 [${cleanTitle}]\n${allCurrentItems.length}개 중 ${state.realMatchCount}개 성공!`, "info"); 
+                            showToast(`👍 [${title}]\n완료!`, "info"); 
                         }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
                         setTimeout(() => goToMain(), 2500);
@@ -273,10 +296,10 @@
             } else {
                 playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); t.el.dataset.everWrong = "true"; d.el.dataset.everWrong = "true"; state.isPerfect = false;
                 if(!window.isReviewMode) {
-                    const cleanStudyTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
-                    if(!wrongDB[cleanStudyTitle]) wrongDB[cleanStudyTitle] = [];
-                    if(!wrongDB[cleanStudyTitle].some(w => w.t === t.item.t)) wrongDB[cleanStudyTitle].push(t.item);
-                    if(!wrongDB[cleanStudyTitle].some(w => w.t === d.item.t)) wrongDB[cleanStudyTitle].push(d.item);
+                    const studyTitle = document.getElementById('gameTitle').innerText;
+                    if(!wrongDB[studyTitle]) wrongDB[studyTitle] = [];
+                    if(!wrongDB[studyTitle].some(w => w.t === t.item.t)) wrongDB[studyTitle].push(t.item);
+                    if(!wrongDB[studyTitle].some(w => w.t === d.item.t)) wrongDB[studyTitle].push(d.item);
                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
                 }
                 setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400);

@@ -255,29 +255,35 @@
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
                     else {
-                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`, title = document.getElementById('gameTitle').innerText.replace("🔄 ", ""), key = title + (window.isReviewMode ? "_review" : "_study");
+                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+                        const gameTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "");
+                        const key = gameTitle + (window.isReviewMode ? "_review" : "_study");
+                        
+                        // ✅ 완료 시 무조건 날짜 저장
                         doneDB[key] = dateStr;
-                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
+                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
+                        
+                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; 
+                        localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
 
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
                                 if(perfectDB[key] >= 5) {
                                     state.coins += 100; animateCoinIncrease(100);
-                                    showToast(`🔥 대단해! [${title}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success");
-                                    delete wrongDB[title];
+                                    showToast(`🔥 대단해! [${gameTitle}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success");
+                                    delete wrongDB[gameTitle];
                                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB));
                                 } else {
-                                    showToast(`💯 [${title}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success");
+                                    showToast(`💯 [${gameTitle}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success");
                                 }
                             } else {
                                 state.coins += 100; animateCoinIncrease(100);
-                                showToast(`💯 [${title}] 만점 성공!\n🪙 100코인 획득!`, "success");
+                                showToast(`💯 [${gameTitle}] 만점 성공!\n🪙 100코인 획득!`, "success");
                             }
                         } else { 
-                            showToast(`👍 [${title}]\n${allCurrentItems.length}개 중 ${state.realMatchCount}개 성공!`, "info"); 
+                            showToast(`👍 [${gameTitle}]\n${allCurrentItems.length}개 중 ${state.realMatchCount}개 성공!`, "info"); 
                         }
-                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); 
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB));
                         setTimeout(() => goToMain(), 2500);
                     }

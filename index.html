@@ -126,7 +126,28 @@
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
-    function smartSort(array, modePrefix) { return array.sort((a, b) => { const nameA = a.title.trim() + modePrefix, nameB = b.title.trim() + modePrefix; const dateA = doneDB[nameA], dateB = doneDB[nameB]; if (!dateA && dateB) return -1; if (dateA && !dateB) return 1; return 0; }); }
+
+    /* ✅ 수정된 정렬 로직: 안 한 것 우선, 한 것들 중에는 날짜 순으로 정렬 */
+    function smartSort(array, modePrefix) { 
+        return array.sort((a, b) => { 
+            const nameA = a.title.trim() + modePrefix, nameB = b.title.trim() + modePrefix; 
+            const dateA = doneDB[nameA], dateB = doneDB[nameB]; 
+
+            // 1. 둘 다 날짜가 없는 경우 (시트 순서 유지)
+            if (!dateA && !dateB) return 0;
+            // 2. A만 날짜가 없는 경우 (A를 앞으로)
+            if (!dateA && dateB) return -1;
+            // 3. B만 날짜가 없는 경우 (B를 앞으로)
+            if (dateA && !dateB) return 1;
+            
+            // 4. 둘 다 날짜가 있는 경우 (날짜 순서로 정렬: 옛날 것이 앞, 최신이 뒤)
+            // 날짜 형식은 "MM/DD"이므로 문자열 비교로 정렬 가능
+            if (dateA < dateB) return -1;
+            if (dateA > dateB) return 1;
+            return 0;
+        }); 
+    }
+
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';

@@ -8,9 +8,25 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         html, body { overscroll-behavior-y: contain; }
-        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-y: auto; }
-        .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: 100vh; margin: 10px 0 180px 0; height: auto; }
-        #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; overflow-y: auto; }
+        
+        /* 💡 컨테이너가 억지로 화면을 다 채우지 않고 카드 높이에 맞춰 끝나도록 수정 */
+        .container { 
+            width: 96%; 
+            max-width: 700px; 
+            background: white; 
+            padding: 12px; 
+            border-radius: 24px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15); 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            margin: 20px 0; 
+            height: auto; /* 내용물 높이에 맞춤 */
+            min-height: auto; 
+        }
+
+        #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .status-left { display: flex; align-items: center; gap: 6px; }
         .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1rem; display: flex; align-items: center; gap: 3px; }
         .music-toggle-btn { background: #E5E7EB; border: none; padding: 4px 10px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; box-shadow: 0 2px 0 #9CA3AF; }
@@ -19,10 +35,11 @@
         .gauge-bg { width: 90px; height: 16px; background: #e5e7eb; border-radius: 10px; overflow: hidden; border: 1px solid #d1d5db; } 
         #gaugeFill { height: 100%; width: 0%; background: linear-gradient(90deg, #4ADE80, #16A34A); transition: width 0.4s ease-out; }
         .reward-box { font-weight: 900; color: #3C1E1E; font-size: 1.1rem; }
+        
         #mainPage { flex: 1; padding: 10px 5px; }
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
-        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 80px; justify-content: center; justify-items: center; }
+        .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 180px; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
@@ -31,6 +48,22 @@
         .info-badge { font-size: 1.0rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: 12px; margin-top: 6px; width: 90%; }
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex; }
+        
+        /* 💡 게임 페이지 여백 최적화: 10번째 카드 직후 박스가 끝나도록 여백 제거 */
+        #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
+        #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
+        #pageIndicator { font-size: 0.85rem; font-weight: 900; background: #3C1E1E; color: #FEE500; padding: 4px 14px; border-radius: 50px; }
+        
+        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(55px, 8.5vh, 90px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
+        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; box-shadow: 0 4px 0 #1a0d0d; }
+        #definitionsColumn .card { border-color: #d1d5db; color: #3C1E1E; box-shadow: 0 4px 0 #cbd5e1; }
+        .selected { border-color: #FEE500 !important; z-index: 10; transform: translateY(-2px); box-shadow: 0 4px 0 #FEE500 !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+        .wrong-impact { animation: shake 0.2s ease-in-out; border-color: #EF4444 !important; background: #FEF2F2 !important; box-shadow: 0 4px 0 #EF4444 !important; }
+        .matched { pointer-events: none; border-color: #FACC15 !important; background: #FEF9C3 !important; opacity: 0.5; transition: all 0.1s; }
+
+        /* 팝업 및 모달 */
         #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
         #resetPopup.show { right: 20px; }
         #resetPopup.success-mode { border-color: #4ADE80; }
@@ -40,18 +73,6 @@
         .btn-confirm { background: #EF4444; color: white; }
         .btn-cancel { background: #E5E7EB; color: #4B5563; }
         #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popUp { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-        #gamePage { flex: 1; display: none; flex-direction: column; min-height: 100%; }
-        .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 10px; }
-        #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
-        #pageIndicator { font-size: 0.85rem; font-weight: 900; background: #3C1E1E; color: #FEE500; padding: 4px 14px; border-radius: 50px; }
-        .card { padding: 4px 8px; border-radius: 12px; border: 2.5px solid #e5e7eb; text-align: center; cursor: pointer; font-weight: 900; background: white; display: flex; align-items: center; justify-content: center; height: clamp(40px, 7vh, 70px); width: 100%; box-shadow: 0 4px 0 #f3f4f6; transition: all 0.05s linear; line-height: 1.1; }
-        .term-card { background: #3C1E1E; color: #FEE500; border-color: #3C1E1E; box-shadow: 0 4px 0 #1a0d0d; }
-        #definitionsColumn .card { border-color: #d1d5db; color: #3C1E1E; box-shadow: 0 4px 0 #cbd5e1; }
-        .selected { border-color: #FEE500 !important; z-index: 10; transform: translateY(-2px); box-shadow: 0 4px 0 #FEE500 !important; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-        .wrong-impact { animation: shake 0.2s ease-in-out; border-color: #EF4444 !important; background: #FEF2F2 !important; box-shadow: 0 4px 0 #EF4444 !important; }
-        .matched { pointer-events: none; border-color: #FACC15 !important; background: #FEF9C3 !important; opacity: 0.5; transition: all 0.1s; }
     </style>
 </head>
 <body>
@@ -83,7 +104,7 @@
     </div>
     <div id="gamePage">
         <div class="game-header"><h2 id="gameTitle"></h2><div id="pageIndicator"></div></div>
-        <div class="game-board-wrapper"><div class="grid grid-cols-2 gap-x-2 gap-y-3 w-full" id="gameGrid"><div id="termsColumn" class="flex flex-col gap-y-3"></div><div id="definitionsColumn" class="flex flex-col gap-y-3"></div></div></div>
+        <div class="game-board-wrapper"><div class="grid grid-cols-2 gap-x-2 gap-y-2.5 w-full" id="gameGrid"><div id="termsColumn" class="flex flex-col gap-y-2.5"></div><div id="definitionsColumn" class="flex flex-col gap-y-2.5"></div></div></div>
     </div>
 </div>
 
@@ -127,43 +148,24 @@
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
-    /* ✅ 복습 정렬 로직만 아버님 의도대로 3단계 정렬 적용 */
     function smartSort(array, modePrefix) { 
         return array.sort((a, b) => { 
-            const nameA = a.title.trim() + modePrefix, nameB = b.title.trim() + modePrefix; 
+            const cleanA = a.title.trim(); const cleanB = b.title.trim();
+            const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix; 
             const dateA = doneDB[nameA], dateB = doneDB[nameB]; 
-
-            // 복습 모드 전용 로직
             if (modePrefix === "_review") {
-                const countA = (wrongDB[a.title.trim()] || []).length;
-                const countB = (wrongDB[b.title.trim()] || []).length;
-
-                // 1단계: 0쌍은 무조건 뒤로 (3순위)
+                const countA = (wrongDB[cleanA] || []).length; const countB = (wrongDB[cleanB] || []).length;
                 if (countA > 0 && countB === 0) return -1;
                 if (countA === 0 && countB > 0) return 1;
-
-                // 2단계: 0쌍이 아닌 것들 중에서 날짜 유무로 구분
                 if (countA > 0 && countB > 0) {
-                    // 2-1: 날짜 없는 것을 맨 앞으로 (1순위)
                     if (!dateA && dateB) return -1;
                     if (dateA && !dateB) return 1;
-
-                    // 2-2: 둘 다 날짜가 있으면 날짜 오래된 순서 (2순위)
-                    if (dateA && dateB) {
-                        if (dateA < dateB) return -1;
-                        if (dateA > dateB) return 1;
-                    }
+                    if (dateA && dateB) { if (dateA < dateB) return -1; if (dateA > dateB) return 1; }
                 }
-                return 0; // 조건이 같으면 시트 순서 유지
+                return 0;
             }
-
-            // 학습 모드는 기존 정렬 유지 (안 한 것 우선)
-            if (!dateA && dateB) return -1;
-            if (dateA && !dateB) return 1;
-            if (dateA && dateB) {
-                if (dateA < dateB) return -1;
-                if (dateA > dateB) return 1;
-            }
+            if (!dateA && dateB) return -1; if (dateA && !dateB) return 1;
+            if (dateA < dateB) return -1; if (dateA > dateB) return 1;
             return 0;
         }); 
     }

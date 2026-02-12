@@ -2,14 +2,18 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
     <title>우진이의 스마트 매칭 게임</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        html, body { overscroll-behavior-y: contain; }
-        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; overflow-y: auto; }
-        .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: 100vh; margin: 10px 0 180px 0; height: auto; }
+        html, body { overscroll-behavior-y: contain; height: 100%; overflow: hidden; }
+        body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; min-height: calc(100vh - 40px); margin: 20px 0; height: auto; overflow-y: auto; }
         #statusBar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: #f9fafb; padding: 8px 12px; border-radius: 15px; flex-shrink: 0; height: 54px; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .status-left { display: flex; align-items: center; gap: 6px; }
         .coin-box { font-weight: 900; color: #3C1E1E; font-size: 1rem; display: flex; align-items: center; gap: 3px; }
@@ -127,37 +131,27 @@
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
-    /* ✅ 복습 정렬 로직만 아버님 의도대로 3단계 정렬 적용 */
     function smartSort(array, modePrefix) { 
         return array.sort((a, b) => { 
             const nameA = a.title.trim() + modePrefix, nameB = b.title.trim() + modePrefix; 
             const dateA = doneDB[nameA], dateB = doneDB[nameB]; 
 
-            // 복습 모드 전용 로직
             if (modePrefix === "_review") {
                 const countA = (wrongDB[a.title.trim()] || []).length;
                 const countB = (wrongDB[b.title.trim()] || []).length;
-
-                // 1단계: 0쌍은 무조건 뒤로 (3순위)
                 if (countA > 0 && countB === 0) return -1;
                 if (countA === 0 && countB > 0) return 1;
-
-                // 2단계: 0쌍이 아닌 것들 중에서 날짜 유무로 구분
                 if (countA > 0 && countB > 0) {
-                    // 2-1: 날짜 없는 것을 맨 앞으로 (1순위)
                     if (!dateA && dateB) return -1;
                     if (dateA && !dateB) return 1;
-
-                    // 2-2: 둘 다 날짜가 있으면 날짜 오래된 순서 (2순위)
                     if (dateA && dateB) {
                         if (dateA < dateB) return -1;
                         if (dateA > dateB) return 1;
                     }
                 }
-                return 0; // 조건이 같으면 시트 순서 유지
+                return 0;
             }
 
-            // 학습 모드는 기존 정렬 유지 (안 한 것 우선)
             if (!dateA && dateB) return -1;
             if (dateA && !dateB) return 1;
             if (dateA && dateB) {
@@ -197,7 +191,7 @@
         el.classList.add('selected');
         if(state.selectedTerm && state.selectedDef) {
             const t = state.selectedTerm, d = state.selectedDef;
-            if(t.item.t === d.item.t || t.item.d === d.item.d) {
+            if(t.item.t === d.item.d || t.item.d === d.item.d || t.item.t === d.item.t) {
                 playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; if(t.el.dataset.everWrong !== "true" && d.el.dataset.everWrong !== "true") { state.realMatchCount++; } updateUI(); state.selectedTerm = state.selectedDef = null;
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     const totalMatched = (currentPage * 10) + pagePairs.length;

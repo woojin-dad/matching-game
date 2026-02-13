@@ -24,15 +24,15 @@
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
         
-        /* 🎨 과목 카드 세로 길이 유연하게 수정 */
-        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 16px 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 220px; height: auto; }
-        
+        /* 🎨 과목 카드 설정 */
+        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 16px 10px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 240px; height: auto; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 8px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
-        .info-badge { font-size: 0.75rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 3px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        /* 💡 글자 크기를 0.75rem에서 0.85rem으로 상향 */
+        .info-badge { font-size: 0.85rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
         
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
@@ -150,12 +150,11 @@
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 v ${doneDB[sKey]}</div>` : ''}`; 
+            // 💡 학습 과목 날짜에서 'v' 제거
+            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
             d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); startGame(cleanName, mode.items, false); }; 
             studyGrid.appendChild(d); 
         });
-        
-        // 🔄 복습 그리드 렌더링 (요청 사항 반영)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review", rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
@@ -164,7 +163,7 @@
             const perfectCount = perfectDB[rKey] || 0;
             const lastDate = doneDB[rKey] || "미완료";
             
-            // 💡 5줄 레이아웃 및 🥇 이모지 수정 부분
+            // 💡 복습 카드 5줄 레이아웃 및 🥇 금메달 이모지 반영
             r.innerHTML = `
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
@@ -205,7 +204,7 @@
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
                                 if(perfectDB[key] >= 5) { state.coins += 100; animateCoinIncrease(100); showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success"); }
+                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인 획득!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 [${cleanName}] 만점 성공!\n🪙 100코인 획득!`, "success"); }
                         } else { showToast(`👍 [${cleanName}]\n성공!`, "info"); }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);

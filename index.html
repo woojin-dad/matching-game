@@ -28,7 +28,13 @@
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        
         .info-badge { font-size: 0.8rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 2px 8px; border-radius: 10px; margin-top: 3px; width: 92%; white-space: nowrap; overflow: hidden; }
+        
+        /* 💡 처음부터 안 보이게 고침 */
+        .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
+        body.admin-mode .delete-btn { display: flex !important; }
+        
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -83,8 +89,6 @@
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
-    
-    // ✅ 버그 방지를 위해 게임 시작 시 현재 이름을 저장할 변수
     let currentActiveTitle = "";
 
     const todayStr = new Date().toLocaleDateString();
@@ -178,44 +182,22 @@
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); }
                     else {
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        // ✅ 게임 시작 시 저장한 currentActiveTitle만 사용하여 정확히 기록
                         const cleanName = currentActiveTitle; 
                         const key = cleanName + (window.isReviewMode ? "_review" : "_study");
-                        
-                        if(window.isReviewMode) {
-                            tryDB[cleanName] = (tryDB[cleanName] || 0) + 1;
-                            localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB));
-                        }
-
+                        if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
-                        
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
-                                if(perfectDB[key] >= 5) { 
-                                    state.coins += 100; animateCoinIncrease(100); 
-                                    showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); 
-                                    delete wrongDB[cleanName]; delete tryDB[cleanName]; 
-                                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
-                                    localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB));
-                                } else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success"); }
+                                if(perfectDB[key] >= 5) { state.coins += 100; animateCoinIncrease(100); showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
+                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 [${cleanName}] 만점 성공!\n🪙 100코인 획득!`, "success"); }
                         } else { showToast(`👍 [${cleanName}]\n성공!`, "info"); }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);
                     }
                 }
-            } else { 
-                playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; 
-                if(!window.isReviewMode) { 
-                    const cleanName = currentActiveTitle;
-                    if(!wrongDB[cleanName]) wrongDB[cleanName] = []; 
-                    if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); 
-                    if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); 
-                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
-                } 
-                setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); 
-            }
+            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanName = currentActiveTitle; if(!wrongDB[cleanName]) wrongDB[cleanName] = []; if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>우진이의 매칭 게임</title>
+    <title>우진이의 스마트 매칭 게임</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
@@ -23,15 +23,17 @@
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
-        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; aspect-ratio: 1 / 1.15; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 180px; }
+        
+        /* 🎨 과목 카드 세로 길이 유연하게 수정 */
+        .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 16px 12px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 220px; height: auto; }
+        
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
-        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 8px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
-        .info-badge { font-size: 0.8rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 2px 8px; border-radius: 10px; margin-top: 3px; width: 92%; white-space: nowrap; overflow: hidden; }
+        .info-badge { font-size: 0.75rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 3px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 💡 처음부터 안 보이게 고침 */
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
         
@@ -152,6 +154,8 @@
             d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); startGame(cleanName, mode.items, false); }; 
             studyGrid.appendChild(d); 
         });
+        
+        // 🔄 복습 그리드 렌더링 (요청 사항 반영)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review", rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
@@ -159,7 +163,17 @@
             const tryCount = tryDB[cleanName] || 0;
             const perfectCount = perfectDB[rKey] || 0;
             const lastDate = doneDB[rKey] || "미완료";
-            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${rItems.length}쌍 | 💯 ${perfectCount}/5</div><div class="info-badge">🚀 도전: ${tryCount}회</div><div class="info-badge">📅 ${lastDate}</div>`; 
+            
+            // 💡 5줄 레이아웃 및 🥇 이모지 수정 부분
+            r.innerHTML = `
+                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
+                <div class="icon-area">${mode.icon}</div>
+                <div class="title">${cleanName}</div>
+                <div class="info-badge">📋 ${rItems.length}쌍</div>
+                <div class="info-badge">🥇 ${perfectCount} / 5회</div>
+                <div class="info-badge">🚀 도전: ${tryCount}회</div>
+                <div class="info-badge">📅 ${lastDate}</div>
+            `; 
             r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
             reviewGrid.appendChild(r); 
         });
@@ -191,7 +205,7 @@
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
                                 if(perfectDB[key] >= 5) { state.coins += 100; animateCoinIncrease(100); showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인 획득!`, "success"); }
+                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 [${cleanName}] 만점 성공!\n🪙 100코인 획득!`, "success"); }
                         } else { showToast(`👍 [${cleanName}]\n성공!`, "info"); }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);

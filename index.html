@@ -10,7 +10,6 @@
         html, body { overscroll-behavior-y: contain; }
         body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; overflow-y: auto; }
         
-        /* 💡 컨테이너가 억지로 화면을 다 채우지 않고 카드 높이에 맞춰 끝나도록 수정 */
         .container { 
             width: 96%; 
             max-width: 700px; 
@@ -22,7 +21,7 @@
             display: flex; 
             flex-direction: column; 
             margin: 20px 0; 
-            height: auto; /* 내용물 높이에 맞춤 */
+            height: auto; 
             min-height: auto; 
         }
 
@@ -45,11 +44,10 @@
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
-        .info-badge { font-size: 1.0rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 10px; border-radius: 12px; margin-top: 6px; width: 90%; }
+        .info-badge { font-size: 0.85rem; font-weight: 900; background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 10px; margin-top: 4px; width: 92%; color: #fff; }
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex; }
         
-        /* 💡 게임 페이지 여백 최적화: 10번째 카드 직후 박스가 끝나도록 여백 제거 */
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -63,7 +61,6 @@
         .wrong-impact { animation: shake 0.2s ease-in-out; border-color: #EF4444 !important; background: #FEF2F2 !important; box-shadow: 0 4px 0 #EF4444 !important; }
         .matched { pointer-events: none; border-color: #FACC15 !important; background: #FEF9C3 !important; opacity: 0.5; transition: all 0.1s; }
 
-        /* 팝업 및 모달 */
         #resetPopup { position: fixed; top: 20px; right: -350px; width: 280px; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 3px solid #EF4444; padding: 20px; z-index: 2000; transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55); text-align: center; }
         #resetPopup.show { right: 20px; }
         #resetPopup.success-mode { border-color: #4ADE80; }
@@ -118,6 +115,8 @@
     let doneDB = JSON.parse(localStorage.getItem('woojin_done_v1')) || {};
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
+    // ✅ 누적 시도 횟수를 저장하는 tryDB 추가
+    let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
 
     const todayStr = new Date().toLocaleDateString();
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
@@ -143,7 +142,7 @@
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
     function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); if (popup.classList.contains('show') && (type === 'success' || type === 'info')) { text.innerText += "\n\n" + message; } else { text.innerText = message; } if (type === 'success' || type === 'info') { btnArea.style.display = 'none'; popup.classList.toggle('success-mode', type === 'success'); popup.classList.add('show'); clearTimeout(window.autoCloseTimer); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 7000); } else { btnArea.style.display = 'flex'; popup.classList.remove('success-mode'); popup.classList.add('show'); } }
     function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
-    function openResetPopup(e, title, type) { if(e) { e.preventDefault(); e.stopPropagation(); } const modeName = (type === 'study' ? '학습' : '복습'); const cleanName = title.trim(); showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); document.getElementById('btnOk').onclick = () => { const sKey = cleanName + "_study", rKey = cleanName + "_review"; if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; delete dailyLimitDB.counts[sKey]; } else { delete doneDB[rKey]; delete wrongDB[cleanName]; delete perfectDB[rKey]; delete dailyLimitDB.counts[rKey]; } localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); closeResetPopup(); renderMenu(); }; }
+    function openResetPopup(e, title, type) { if(e) { e.preventDefault(); e.stopPropagation(); } const modeName = (type === 'study' ? '학습' : '복습'); const cleanName = title.trim(); showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); document.getElementById('btnOk').onclick = () => { const sKey = cleanName + "_study", rKey = cleanName + "_review"; if (type === 'study') { delete doneDB[sKey]; delete perfectDB[sKey]; delete dailyLimitDB.counts[sKey]; } else { delete doneDB[rKey]; delete wrongDB[cleanName]; delete perfectDB[rKey]; delete tryDB[cleanName]; delete dailyLimitDB.counts[rKey]; } localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); closeResetPopup(); renderMenu(); }; }
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
@@ -184,7 +183,21 @@
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review", rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 3; 
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
-            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge item-count">${rItems.length}쌍</div>${doneDB[rKey] ? `<div class="info-badge done-label">v ${doneDB[rKey]}</div>` : ''}`; 
+            
+            // ✅ 복습 카드에 표시할 누적 정보 가져오기
+            const tryCount = tryDB[cleanName] || 0;
+            const perfectCount = perfectDB[rKey] || 0;
+            const lastDate = doneDB[rKey] || "없음";
+
+            r.innerHTML = `
+                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
+                <div class="icon-area">${mode.icon}</div>
+                <div class="title">${cleanName}</div>
+                <div class="info-badge">📋 ${rItems.length}쌍</div>
+                <div class="info-badge">💯 ${perfectCount} / 5</div>
+                <div class="info-badge">🚀 도전: ${tryCount}회</div>
+                <div class="info-badge" style="font-size:0.75rem;">📅 ${lastDate}</div>
+            `; 
             r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; state.realMatchCount = 0; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
             reviewGrid.appendChild(r); 
         });
@@ -209,12 +222,27 @@
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
                         const cleanName = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
                         const key = cleanName + (window.isReviewMode ? "_review" : "_study");
+                        
+                        // ✅ 복습 모드 완료 시 시도 횟수 무조건 증가
+                        if(window.isReviewMode) {
+                            tryDB[cleanName] = (tryDB[cleanName] || 0) + 1;
+                            localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB));
+                        }
+
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
+                        
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
-                                if(perfectDB[key] >= 5) { state.coins += 100; animateCoinIncrease(100); showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); delete wrongDB[cleanName]; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); }
+                                if(perfectDB[key] >= 5) { 
+                                    state.coins += 100; animateCoinIncrease(100); 
+                                    showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성 졸업!\n🪙 보너스 100코인 획득!`, "success"); 
+                                    delete wrongDB[cleanName]; 
+                                    delete tryDB[cleanName]; // 졸업 시 시도 횟수도 명예롭게 초기화
+                                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
+                                    localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB));
+                                }
                                 else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인을 줄게!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 [${cleanName}] 만점 성공!\n🪙 100코인 획득!`, "success"); }
                         } else { showToast(`👍 [${cleanName}]\n성공!`, "info"); }

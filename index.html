@@ -45,7 +45,6 @@
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
-        /* ✅ 이전 배지 디자인 복구 (어두운 배경 + 노란 글씨) */
         .info-badge { font-size: 0.8rem; font-weight: 900; background: rgba(0,0,0,0.4); color: #FEE500; padding: 2px 8px; border-radius: 10px; margin-top: 3px; width: 92%; white-space: nowrap; overflow: hidden; }
         
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
@@ -220,6 +219,7 @@
                     if(!isLastCardInSubject) { currentPage++; setTimeout(() => renderPage(document.getElementById('gameTitle').innerText), 500); }
                     else {
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
+                        // ✅ 이 부분에서 🔄 기호를 제거하고 공백을 깎아야 정확히 저장됩니다.
                         const cleanName = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
                         const key = cleanName + (window.isReviewMode ? "_review" : "_study");
                         

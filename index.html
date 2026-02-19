@@ -23,20 +23,14 @@
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
-        
-        /* 🎨 과목 카드 설정 */
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 16px 10px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 240px; height: auto; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 8px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
-        
-        /* 💡 글자 크기를 0.75rem에서 0.85rem으로 상향 */
         .info-badge { font-size: 1rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
-        
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
-        
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -84,6 +78,15 @@
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
+    // 🎵 깃허브 음악 설정
+    const mySongs = [
+        "https://woojin-dad.github.io/matching-game/bgm/How_it_Began.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/About_That_Oldie.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/Bike_Rides.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/Big_Cars.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/Beat_Your_Competition.mp3"
+    ];
+
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
     let gameData = [], currentPage = 0, allCurrentItems = [], pagePairs = [];
     let wrongDB = JSON.parse(localStorage.getItem('woojin_wrong_v3')) || {};
@@ -97,7 +100,31 @@
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
     const bgm = document.getElementById('bgm');
-    function toggleBGM() { if (bgm.paused) { const songs = [1, 2, 8]; const randomSong = songs[Math.floor(Math.random() * songs.length)]; bgm.src = `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${randomSong}.mp3`; bgm.volume = 0.3; bgm.play().catch(e => console.log("BGM 재생 오류:", e)); document.getElementById('musicIcon').innerText = '🎵'; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; } }
+    
+    // 💡 노래가 끝나면 자동으로 다음 랜덤 곡 재생
+    bgm.onended = function() { setRandomBGM(); };
+
+    function setRandomBGM() {
+        const randomURL = mySongs[Math.floor(Math.random() * mySongs.length)];
+        bgm.src = randomURL;
+        bgm.load();
+        if (document.getElementById('musicIcon').innerText === '🎵') {
+            bgm.play().catch(e => console.log("BGM 재생 오류:", e));
+        }
+    }
+
+    function toggleBGM() { 
+        if (!bgm.src) { setRandomBGM(); return; }
+        if (bgm.paused) { 
+            bgm.volume = 0.3; 
+            bgm.play().catch(e => console.log("BGM 재생 오류:", e)); 
+            document.getElementById('musicIcon').innerText = '🎵'; 
+        } else { 
+            bgm.pause(); 
+            document.getElementById('musicIcon').innerText = '🔇'; 
+        } 
+    }
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -150,9 +177,17 @@
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            // 💡 학습 과목 날짜에서 'v' 제거
             d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
-            d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); startGame(cleanName, mode.items, false); }; 
+            d.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                
+                // 💡 [음악 추가] 과목 클릭 시 음악이 아직 시작 전이면 첫 곡 틀기
+                if (!bgm.src) toggleBGM(); 
+                else if (document.getElementById('musicIcon').innerText === '🎵' && bgm.paused) bgm.play();
+
+                startGame(cleanName, mode.items, false); 
+            }; 
             studyGrid.appendChild(d); 
         });
         smartSort([...gameData], "_review").forEach((mode) => { 
@@ -163,17 +198,18 @@
             const perfectCount = perfectDB[rKey] || 0;
             const lastDate = doneDB[rKey] || "미완료";
             
-            // 💡 복습 카드 5줄 레이아웃 및 🥇 금메달 이모지 반영
-            r.innerHTML = `
-                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
-                <div class="icon-area">${mode.icon}</div>
-                <div class="title">${cleanName}</div>
-                <div class="info-badge">📋 ${rItems.length}쌍</div>
-                <div class="info-badge">🥇 ${perfectCount} / 5회</div>
-                <div class="info-badge">🚀 도전: ${tryCount}회</div>
-                <div class="info-badge">📅 ${lastDate}</div>
-            `; 
-            r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
+            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${rItems.length}쌍</div><div class="info-badge">🥇 ${perfectCount} / 5회</div><div class="info-badge">🚀 도전: ${tryCount}회</div><div class="info-badge">📅 ${lastDate}</div>`; 
+            r.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+
+                // 💡 [음악 추가] 과목 클릭 시 음악이 아직 시작 전이면 첫 곡 틀기
+                if (!bgm.src) toggleBGM(); 
+                else if (document.getElementById('musicIcon').innerText === '🎵' && bgm.paused) bgm.play();
+
+                if(rItems.length > 0) startGame(cleanName, rItems, true); 
+                else showToast("복습할 단어가 없습니다. 👍", 'success'); 
+            }; 
             reviewGrid.appendChild(r); 
         });
     }

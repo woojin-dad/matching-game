@@ -79,11 +79,10 @@
 
     // 🎵 음악 설정
     const mySongs = [
-        "https://woojin-dad.github.io/matching-game/bgm/bgm1.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bgm4.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bgm6.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bgm7.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bgm25.mp3"
+        "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3"
     ];
 
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
@@ -141,7 +140,7 @@
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     async function syncFromCloud() { try { const response = await fetch(finalScriptUrl); const data = await response.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = Number(data.maxGauge) || 500; updateUI(false); } catch (e) {} }
-    async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해!\n번개 파워 충전 완료! 선물 1개 획득! 🎁", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
+    async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해! 선물 1개와 1000코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
     function updateUI(send = true) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); document.getElementById('giftCount').innerText = state.giftCount; const progress = (state.totalMatchedCount / state.maxGauge) * 100; document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; if(send) syncToCloud(); }
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
     function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); if (popup.classList.contains('show') && (type === 'success' || type === 'info')) { text.innerText += "\n\n" + message; } else { text.innerText = message; } if (type === 'success' || type === 'info') { btnArea.style.display = 'none'; popup.classList.toggle('success-mode', type === 'success'); popup.classList.add('show'); clearTimeout(window.autoCloseTimer); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 7000); } else { btnArea.style.display = 'flex'; popup.classList.remove('success-mode'); popup.classList.add('show'); } }
@@ -177,34 +176,50 @@
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         smartSort([...gameData], "_study").forEach((mode) => { 
-            const cleanA = mode.title.trim(); const sKey = cleanA + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
+            const cleanName = mode.title.trim(); const sKey = cleanName + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanA}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanA}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
+            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊\n오늘 공부는 충분히 잘했어요! 최고!", 'success'); return; } 
-                state.isPerfect = true; currentActiveTitle = cleanA; 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                
+                // 💡 [음악 자동 시작] 과목 클릭 시 음악이 꺼져있다면 재생 시작
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') {
                     bgm.play().catch(e => console.log("터치 후 재생"));
                 }
-                startGame(cleanA, mode.items, false); 
+
+                startGame(cleanName, mode.items, false); 
             }; 
             studyGrid.appendChild(d); 
         });
         smartSort([...gameData], "_review").forEach((mode) => { 
-            const cleanA = mode.title.trim(); const rKey = cleanA + "_review", rItems = wrongDB[cleanA] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
+            const cleanName = mode.title.trim(); const rKey = cleanName + "_review", rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
-            const tryCount = tryDB[cleanA] || 0; const perfectCount = perfectDB[rKey] || 0; const lastDate = doneDB[rKey] || "미완료";
-            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanA}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanA}</div><div class="info-badge">📋 ${rItems.length}쌍</div><div class="info-badge">🥇 ${perfectCount} / 5회</div><div class="info-badge">🚀 도전: ${tryCount}회</div><div class="info-badge">📅 ${lastDate}</div>`; 
+            const tryCount = tryDB[cleanName] || 0;
+            const perfectCount = perfectDB[rKey] || 0;
+            const lastDate = doneDB[rKey] || "미완료";
+            r.innerHTML = `
+                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
+                <div class="icon-area">${mode.icon}</div>
+                <div class="title">${cleanName}</div>
+                <div class="info-badge">📋 ${rItems.length}쌍</div>
+                <div class="info-badge">🥇 ${perfectCount} / 5회</div>
+                <div class="info-badge">🚀 도전: ${tryCount}회</div>
+                <div class="info-badge">📅 ${lastDate}</div>
+            `; 
             r.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊\n오늘 공부는 충분히 잘했어요! 최고!", 'success'); return; } 
-                state.isPerfect = true; currentActiveTitle = cleanA; 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+
+                // 💡 [음악 자동 시작] 과목 클릭 시 음악이 꺼져있다면 재생 시작
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') {
                     bgm.play().catch(e => console.log("터치 후 재생"));
                 }
-                if(rItems.length > 0) startGame(cleanA, rItems, true); 
+
+                if(rItems.length > 0) startGame(cleanName, rItems, true); 
                 else showToast("우와! 완벽해요! ✨\n지금은 복습할 단어가 하나도 없어요!", 'success'); 
             }; 
             reviewGrid.appendChild(r); 
@@ -228,21 +243,22 @@
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); }
                     else {
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        const cleanA = currentActiveTitle; const key = cleanA + (window.isReviewMode ? "_review" : "_study");
-                        if(window.isReviewMode) { tryDB[cleanA] = (tryDB[cleanA] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
+                        const cleanName = currentActiveTitle; 
+                        const key = cleanName + (window.isReviewMode ? "_review" : "_study");
+                        if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
-                                if(perfectDB[key] >= 5) { state.coins += 200; animateCoinIncrease(200); showToast(`🔥 역시 우진이야!\n[${cleanA}] 5회 만점 달성!\n보너스 200코인 획득! 🪙`, "success"); delete wrongDB[cleanA]; delete tryDB[cleanA]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                                else { showToast(`💯 [${cleanA}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)\n조금만 더 하면 보너스 코인을 얻을 수 있어!`, "success"); }
+                                if(perfectDB[key] >= 5) { state.coins += 200; animateCoinIncrease(200); showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 200코인 획득! 🪙`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
+                                else { showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)\n조금만 더 하면 보너스 코인을 얻을 수 있어!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); }
-                        } else { showToast(`👍 [${cleanA}] 완료!\n우진아, 다음에는 백점에 도전해볼까?`, "info"); }
+                        } else { showToast(`👍 [${cleanName}] 완료!\n우진아, 다음에는 백점에 도전해볼까?`, "info"); }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);
                     }
                 }
-            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanA = currentActiveTitle; if(!wrongDB[cleanA]) wrongDB[cleanA] = []; if(!wrongDB[cleanA].some(w => w.t === t.item.t)) wrongDB[cleanA].push(t.item); if(!wrongDB[cleanA].some(w => w.t === d.item.t)) wrongDB[cleanA].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
+            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanName = currentActiveTitle; if(!wrongDB[cleanName]) wrongDB[cleanName] = []; if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }

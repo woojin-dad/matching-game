@@ -104,7 +104,7 @@
 
     function setRandomBGM() {
         const randomURL = mySongs[Math.floor(Math.random() * mySongs.length)];
-        bgm.src = randomURL; bgm.load();
+        bgm.src = randomURL; bgm.load(); bgm.volume = 0.3;
         // 음악이 켜져있는 상태(🎵)라면 즉시 재생
         if (document.getElementById('musicIcon').innerText === '🎵') {
             bgm.play().catch(e => console.log("자동재생 대기"));
@@ -115,7 +115,7 @@
     function toggleBGM() {
         if (!bgm.src) { setRandomBGM(); return; }
         if (bgm.paused) {
-            bgm.volume = 0.3;
+            
             bgm.play()
                .then(() => { document.getElementById('musicIcon').innerText = '🎵'; })
                .catch(e => console.log("터치 필요"));

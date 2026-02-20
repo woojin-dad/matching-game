@@ -23,20 +23,14 @@
         .main-title { font-size: 2.2rem; font-weight: 900; color: #3C1E1E; text-shadow: 1px 1px 0 #fff; letter-spacing: -0.05em; cursor: pointer; -webkit-user-select: none; user-select: none; }
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
-        
-        /* 🎨 과목 카드 설정 */
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 16px 10px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 240px; height: auto; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 8px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
-        
-        /* 💡 글자 크기를 0.75rem에서 0.85rem으로 상향 */
         .info-badge { font-size: 1rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
-        
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
-        
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -84,6 +78,13 @@
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
+    // 🎵 음악 설정
+    const mySongs = [
+        "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3",
+        "https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3"
+    ];
+
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
     let gameData = [], currentPage = 0, allCurrentItems = [], pagePairs = [];
     let wrongDB = JSON.parse(localStorage.getItem('woojin_wrong_v3')) || {};
@@ -97,7 +98,33 @@
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
     const bgm = document.getElementById('bgm');
-    function toggleBGM() { if (bgm.paused) { const songs = [1, 2, 8]; const randomSong = songs[Math.floor(Math.random() * songs.length)]; bgm.src = `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-${randomSong}.mp3`; bgm.volume = 0.3; bgm.play().catch(e => console.log("BGM 재생 오류:", e)); document.getElementById('musicIcon').innerText = '🎵'; } else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; } }
+
+    // 💡 노래가 끝나면 자동으로 다음 랜덤 곡 재생
+    bgm.onended = function() { setRandomBGM(); };
+
+    function setRandomBGM() {
+        const randomURL = mySongs[Math.floor(Math.random() * mySongs.length)];
+        bgm.src = randomURL; bgm.load();
+        // 음악이 켜져있는 상태(🎵)라면 즉시 재생
+        if (document.getElementById('musicIcon').innerText === '🎵') {
+            bgm.play().catch(e => console.log("자동재생 대기"));
+        }
+    }
+
+    // 💡 음악 버튼: 단순히 소리만 끄고 켜기 (이어 듣기)
+    function toggleBGM() {
+        if (!bgm.src) { setRandomBGM(); return; }
+        if (bgm.paused) {
+            bgm.volume = 0.3;
+            bgm.play()
+               .then(() => { document.getElementById('musicIcon').innerText = '🎵'; })
+               .catch(e => console.log("터치 필요"));
+        } else {
+            bgm.pause();
+            document.getElementById('musicIcon').innerText = '🔇';
+        }
+    }
+
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -110,6 +137,7 @@
         else if (type === 'tick') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05); osc.start(now); osc.stop(now + 0.05); } 
         else if (type === 'master') { const notes = [523.25, 659.25, 783.99, 1046.50]; notes.forEach((freq, i) => { const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.type = 'sine'; o.frequency.setValueAtTime(freq, now + i * 0.1); g.gain.setValueAtTime(0.5, now + i * 0.1); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.4); o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.4); }); }
     }
+
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     async function syncFromCloud() { try { const response = await fetch(finalScriptUrl); const data = await response.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = Number(data.maxGauge) || 500; updateUI(false); } catch (e) {} }
     async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("⚡ 우진아 대단해! 선물 1개와 1000코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
@@ -150,9 +178,19 @@
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            // 💡 학습 과목 날짜에서 'v' 제거
             d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
-            d.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); startGame(cleanName, mode.items, false); }; 
+            d.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                
+                // 💡 [음악 자동 시작] 과목 클릭 시 음악이 꺼져있다면 재생 시작
+                if (!bgm.src) { setRandomBGM(); }
+                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') {
+                    bgm.play().catch(e => console.log("터치 후 재생"));
+                }
+
+                startGame(cleanName, mode.items, false); 
+            }; 
             studyGrid.appendChild(d); 
         });
         smartSort([...gameData], "_review").forEach((mode) => { 
@@ -162,8 +200,6 @@
             const tryCount = tryDB[cleanName] || 0;
             const perfectCount = perfectDB[rKey] || 0;
             const lastDate = doneDB[rKey] || "미완료";
-            
-            // 💡 복습 카드 5줄 레이아웃 및 🥇 금메달 이모지 반영
             r.innerHTML = `
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
@@ -173,7 +209,19 @@
                 <div class="info-badge">🚀 도전: ${tryCount}회</div>
                 <div class="info-badge">📅 ${lastDate}</div>
             `; 
-            r.onclick = () => { if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if(bgm.paused) toggleBGM(); if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 단어가 없습니다. 👍", 'success'); }; 
+            r.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요. 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+
+                // 💡 [음악 자동 시작] 과목 클릭 시 음악이 꺼져있다면 재생 시작
+                if (!bgm.src) { setRandomBGM(); }
+                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') {
+                    bgm.play().catch(e => console.log("터치 후 재생"));
+                }
+
+                if(rItems.length > 0) startGame(cleanName, rItems, true); 
+                else showToast("복습할 단어가 없습니다. 👍", 'success'); 
+            }; 
             reviewGrid.appendChild(r); 
         });
     }
@@ -204,7 +252,7 @@
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
                                 if(perfectDB[key] >= 5) { state.coins += 200; animateCoinIncrease(200); showToast(`🔥 대단해! [${cleanName}] 5회 만점 달성!\n🪙 보너스 200코인 획득!`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 100코인 획득!`, "success"); }
+                                else { showToast(`💯 [${cleanName}] 만점 성공! (누적 ${perfectDB[key]}/5회)\n5번 성공하면 200코인 획득!`, "success"); }
                             } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 [${cleanName}] 만점 성공!\n🪙 100코인 획득!`, "success"); }
                         } else { showToast(`👍 [${cleanName}]\n성공!`, "info"); }
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);

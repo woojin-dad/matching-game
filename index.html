@@ -124,12 +124,24 @@
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
     let currentActiveTitle = "";
+    let lastTime = 0;
 
     const todayStr = new Date().toLocaleDateString();
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
     const bgm = document.getElementById('bgm');
+    bgm.ontimeupdate = function() {
+    if (!bgm.seeking) { 
+        lastTime = bgm.currentTime; 
+    }
+};
 
+bgm.onseeking = function() {
+    if (bgm.currentTime - lastTime > 1) { 
+        bgm.currentTime = 0; 
+        bgm.play();
+    }
+};
     // 💡 노래가 끝나면 자동으로 다음 랜덤 곡 재생 (onended 추가)
     bgm.onended = function() { setRandomBGM(); };
 

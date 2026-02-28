@@ -74,6 +74,19 @@
 </div>
 
 <script>
+    const GAME_ID = "woojin_game_active";
+
+if (localStorage.getItem(GAME_ID) === 'true') {
+alert("우진아, 게임 창이 이미 열려 있어! 하나만 남기고 닫아줘.");
+document.body.innerHTML = "<h1>창을 하나만 열어주세요!</h1>";
+throw new Error("중복 실행 방지");
+}
+
+localStorage.setItem(GAME_ID, 'true');
+
+window.addEventListener('beforeunload', function() {
+localStorage.removeItem(GAME_ID);
+});
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 

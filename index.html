@@ -137,7 +137,7 @@
 };
 
 bgm.onseeking = function() {
-    if (bgm.currentTime - lastTime > 1) { 
+    if (Math.abs(bgm.currentTime - lastTime) > 1) { 
         bgm.currentTime = lastTime;
         bgm.play();
     }

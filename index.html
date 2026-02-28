@@ -138,7 +138,7 @@
 
 bgm.onseeking = function() {
     if (bgm.currentTime - lastTime > 1) { 
-        bgm.currentTime = 0; 
+        bgm.currentTime = lastTime;
         bgm.play();
     }
 };

@@ -58,7 +58,11 @@
 <div id="rewardModal"><h2 id="rewardTitle">🎉 축하합니다! 🎉</h2><p id="rewardModalText"></p><button id="rewardBtn" onclick="closeRewardModal()" style="background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A;">확인</button></div>
 <div class="container">
     <audio id="bgm"></audio> <div id="statusBar">
-        <div class="status-left"><div class="coin-box">🪙 <span id="coinCount">...</span></div><button id="topMusicBtn" class="music-toggle-btn" onclick="toggleBGM()"><span id="musicIcon">🎵</span></button></div>
+        <div class="status-left">
+            <div class="coin-box">🪙 <span id="coinCount">...</span></div>
+            <div id="accuracyBox" style="font-weight:900; color:#3C1E1E; font-size:0.85rem; background:#fff; padding:2px 8px; border-radius:10px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); margin-left:2px;">🎯 <span id="statText">0/0 (0%)</span></div>
+            <button id="topMusicBtn" class="music-toggle-btn" onclick="toggleBGM()"><span id="musicIcon">🎵</span></button>
+        </div>
         <button id="topHomeBtn" onclick="goToMain()" class="home-btn" style="visibility: hidden;">🏠 홈</button>
         <div class="status-right"><span class="bolt-icon">⚡</span><div class="gauge-bg"><div id="gaugeFill"></div></div><div class="reward-box">🎁 <span id="giftCount">0</span></div></div>
     </div>
@@ -76,6 +80,22 @@
 <script>
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
+
+    // 🎯 오늘 하루 전체 성적 저장소 로직
+    const todayStr = new Date().toLocaleDateString();
+    let dailyLog = JSON.parse(localStorage.getItem('woojin_daily_log')) || { date: "", trials: 0, hits: 0 };
+
+    if (dailyLog.date !== todayStr) {
+        dailyLog = { date: todayStr, trials: 0, hits: 0 };
+        localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog));
+    }
+
+    function updateStatUI() {
+        const rate = dailyLog.trials === 0 ? 0 : Math.round((dailyLog.hits / dailyLog.trials) * 100);
+        const statEl = document.getElementById('statText');
+        if (statEl) statEl.innerText = `${dailyLog.hits}/${dailyLog.trials} (${rate}%)`;
+        localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog));
+    }
 
     // 🎵 음악 설정
     const mySongs = [
@@ -126,7 +146,6 @@
     let currentActiveTitle = "";
     let lastTime = 0;
 
-    const todayStr = new Date().toLocaleDateString();
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
     const bgm = document.getElementById('bgm');
@@ -279,8 +298,13 @@ bgm.onseeking = function() {
         else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');
         if(state.selectedTerm && state.selectedDef) {
+            // 🎯 전체 시도 횟수 증가
+            dailyLog.trials++;
+
             const t = state.selectedTerm, d = state.selectedDef;
             if(t.item.t === d.item.t || t.item.d === d.item.d) {
+                // ✅ 정답 횟수 증가
+                dailyLog.hits++;
                 playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); }
@@ -302,10 +326,16 @@ bgm.onseeking = function() {
                     }
                 }
             } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanName = currentActiveTitle; if(!wrongDB[cleanName]) wrongDB[cleanName] = []; if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
+            
+            // 🎯 성적 업데이트 호출
+            updateStatUI();
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
     function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
+    
+    // 초기 실행
+    updateStatUI();
     fetchSheetData();
 </script>
 </body>

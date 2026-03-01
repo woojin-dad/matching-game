@@ -240,7 +240,13 @@ bgm.onseeking = function() {
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study", isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            d.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${mode.items.length}쌍</div>${doneDB[sKey] ? `<div class="info-badge">📅 ${doneDB[sKey]}</div>` : ''}`; 
+            d.innerHTML = `
+    <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div>
+    <div class="icon-area">${mode.icon}</div>
+    <div class="title">${cleanName}</div>
+    <div class="info-badge">📋 ${mode.items.length}쌍</div>
+    <div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div>
+`;
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊\n오늘 공부는 충분히 잘했어요! 최고!", 'success'); return; } 
                 state.isPerfect = true; currentActiveTitle = cleanName; 

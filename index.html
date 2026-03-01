@@ -74,19 +74,31 @@
 </div>
 
 <script>
+    // 🛡️ 우진이의 '다중 탭 꼼수' 방지 시스템 (이름표 방식)
     const GAME_ID = "woojin_game_active";
 
-if (localStorage.getItem(GAME_ID) === 'true') {
-alert("우진아, 게임 창이 이미 열려 있어! 하나만 남기고 닫아줘.");
-document.body.innerHTML = "<h1>창을 하나만 열어주세요!</h1>";
-throw new Error("중복 실행 방지");
-}
+    // 1. 이미 이름표가 있는지 확인
+    if (localStorage.getItem(GAME_ID) === 'true') {
+        // 아빠 전용 마스터키: '확인' 누르면 입장, '취소' 누르면 차단
+        const retry = confirm("이미 게임이 열려 있나요? 아니라면 '확인'을 눌러주세요.");
+        if (retry) {
+            localStorage.removeItem(GAME_ID);
+            location.reload();
+        } else {
+            document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px;'>창을 하나만 열어주세요!</h1>";
+            throw new Error("중복 실행 방지");
+        }
+    }
 
-localStorage.setItem(GAME_ID, 'true');
+    // 2. 처음 들어왔으면 이름표 붙이기
+    localStorage.setItem(GAME_ID, 'true');
 
-window.addEventListener('beforeunload', function() {
-localStorage.removeItem(GAME_ID);
-});
+    // 3. 창을 닫을 때 이름표 떼기
+    window.onunload = function() {
+        localStorage.removeItem(GAME_ID);
+    };
+
+    // --- 여기서부터는 원래 있던 아버님의 코드들 ---
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 

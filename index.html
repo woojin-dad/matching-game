@@ -74,39 +74,6 @@
 </div>
 
 <script>
-    // 🛡️ 우진이의 '다중 탭 꼼수' 원천 차단 (버튼 없음)
-    const GAME_ID = "woojin_game_active";
-
-    // 1. 이미 이름표가 있는지 확인
-    if (localStorage.getItem(GAME_ID) === 'true') {
-        // [수정 포인트] 확인 버튼 대신 경고창(alert)만 띄우고 끝냅니다.
-        alert("우진아, 게임 창이 이미 열려 있어요! 다른 창을 먼저 닫아주세요. 😊");
-        
-        // 버튼 없는 노란색 경고 화면으로 꽉 채웁니다. (아무것도 클릭 안 됨)
-        document.body.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;background:#FEE500;padding:20px;-webkit-user-select:none;user-select:none;">
-                <h1 style="font-size:80px;">🚫</h1>
-                <p style="font-weight:900;font-size:1.8rem;color:#3C1E1E;line-height:1.4;">
-                    우진아, 게임 창이 이미 열려 있어요!<br>
-                    먼저 열려 있는 창을 닫아야<br>
-                    게임을 계속할 수 있습니다.
-                </p>
-                <p style="margin-top:20px; color:#6b7280; font-size:1rem;">(아빠가 만든 보안 시스템 작동 중 🔒)</p>
-            </div>`;
-            
-        // 이후의 모든 게임 코드 실행을 강제로 중단시킵니다.
-        throw new Error("중복 실행 방지 시스템 가동");
-    }
-
-    // 2. 첫 번째 창이라면 이름표를 붙입니다.
-    localStorage.setItem(GAME_ID, 'true');
-
-    // 3. 창을 완전히 닫을 때만 이름표를 떼어냅니다.
-    window.onunload = function() {
-        localStorage.removeItem(GAME_ID);
-    };
-
-    // --- 여기서부터는 원래 있던 아버님의 코드들 ---
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 

@@ -24,17 +24,16 @@
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
         
-        /* 💡 카드 레이아웃 보강: 정답률 뱃지가 아래로 가도록 flex 설정 변경 */
+        /* 💡 4번 수정: 카드 높이와 정렬 방식 최적화 */
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 20px 10px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 280px; height: auto; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
-        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 8px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 10px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
+        
+        /* 💡 2번&3번 수정: 모든 배지 간격을 margin-top: 4px로 통일 */
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
         
-        /* 💡 정답률 전용: 항상 카드 하단에 배치 */
-        .score-badge { margin-top: auto; border: 1.5px dashed rgba(254, 229, 0, 0.4); }
-
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
@@ -87,9 +86,10 @@
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
+    // 🎯 오늘 하루 전체 성적 저장소 로직
     const todayStr = new Date().toLocaleDateString();
     let dailyLog = JSON.parse(localStorage.getItem('woojin_daily_log')) || { date: "", trials: 0, hits: 0 };
-    // 🎯 이번 판 전용 계산기 (세션 스탯)
+    // 💡 이번 판 전용 계산기 (메모리에만 존재)
     let sessionStats = { trials: 0, hits: 0 };
 
     if (dailyLog.date !== todayStr) {
@@ -104,42 +104,43 @@
         localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog));
     }
 
+    // 🎵 음악 설정
     const mySongs = [
         "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/crystal.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/girasol.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/payday.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/payday2.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3",
-        "https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
+"https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/crystal.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/girasol.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/payday.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/payday2.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3",
+"https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
     ];
 
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
@@ -219,11 +220,11 @@
         }); 
     }
 
+    // 💡 1번&2번&3번&4번 수정사항 반영된 renderMenu
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
-        // 📖 학습 카드 그리기
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
@@ -235,20 +236,19 @@
                 <div class="title">${cleanName}</div>
                 <div class="info-badge">📋 ${mode.items.length}쌍</div>
                 <div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div>
-                <div class="info-badge score-badge" style="color: ${sScore !== undefined ? '#4ADE80' : '#cbd5e1'}; font-weight:900;">🎯 성적: ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
+                <div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
             `; 
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
-                sessionStats = { trials: 0, hits: 0 }; // 🎯 이번 판 성적 초기화
+                sessionStats = { trials: 0, hits: 0 }; 
                 startGame(cleanName, mode.items, false); 
             }; 
             studyGrid.appendChild(d); 
         });
 
-        // 🔄 복습 카드 그리기
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -264,14 +264,14 @@
                 <div class="info-badge">🥇 ${perfectCount} / 5회</div>
                 <div class="info-badge">🚀 도전: ${tryDB[cleanName] || 0}회</div>
                 <div class="info-badge">📅 ${doneDB[rKey] || "미완료"}</div>
-                <div class="info-badge score-badge" style="color: ${rScore !== undefined ? '#FEE500' : '#cbd5e1'}; font-weight:900;">🎯 성적: ${rScore !== undefined ? rScore + '%' : '미완료'}</div>
+                <div class="info-badge">🎯 ${rScore !== undefined ? rScore + '%' : '미완료'}</div>
             `; 
             r.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
-                sessionStats = { trials: 0, hits: 0 }; // 🎯 이번 판 성적 초기화
+                sessionStats = { trials: 0, hits: 0 };
                 if(rItems.length > 0) startGame(cleanName, rItems, true); 
                 else showToast("복습할 게 없어요! ✨", 'success'); 
             }; 
@@ -288,27 +288,19 @@
         if(type === 'term') { if(state.selectedTerm && state.selectedTerm.el === el) { el.classList.remove('selected'); state.selectedTerm = null; return; } document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
         else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
         el.classList.add('selected');
-        
         if(state.selectedTerm && state.selectedDef) {
-            // 🎯 전체 누적과 이번 판 개별 통계를 동시에 올립니다.
-            dailyLog.trials++; 
-            sessionStats.trials++; 
-
+            dailyLog.trials++; sessionStats.trials++; 
             const t = state.selectedTerm, d = state.selectedDef;
             if(t.item.t === d.item.t || t.item.d === d.item.d) {
-                dailyLog.hits++; 
-                sessionStats.hits++; 
+                dailyLog.hits++; sessionStats.hits++; 
                 playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
                 if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
                     if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); }
                     else {
                         const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
                         const cleanName = currentActiveTitle; const key = cleanName + (window.isReviewMode ? "_review" : "_study");
-                        
-                        // 🎯 이번 판 성적 계산하여 저장
                         const finalScore = Math.round((sessionStats.hits / sessionStats.trials) * 100);
                         doneDB[key + "_score"] = finalScore;
-
                         if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
@@ -323,7 +315,7 @@
                     }
                 }
             } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanName = currentActiveTitle; if(!wrongDB[cleanName]) wrongDB[cleanName] = []; if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
-            updateStatUI(); // 상단바는 항상 오늘 '전체' 기록을 보여줍니다.
+            updateStatUI(); 
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }

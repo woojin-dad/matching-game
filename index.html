@@ -7,18 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        /* 💡 1. 업데이트 뱃지 디자인 (디자인 칸에 추가) */
-.update-badge { 
-    position: absolute; top: -5px; left: -5px; 
-    background: #FF5722; color: white; 
-    font-size: 0.7rem; font-weight: 900; 
-    padding: 2px 8px; border-radius: 8px; 
-    box-shadow: 0 2px 10px rgba(255,87,34,0.4); 
-    z-index: 100; animation: pulse 1.5s infinite; 
-}
-@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-
-
         html, body { overscroll-behavior-y: contain; }
         body { background: #FEE500; font-family: 'Apple SD Gothic Neo', sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; overflow-y: auto; }
         .container { width: 96%; max-width: 700px; background: white; padding: 12px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: relative; display: flex; flex-direction: column; margin: 20px 0; height: auto; min-height: auto; }
@@ -279,17 +267,10 @@
         
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
-
-            const currentCount = mode.items.length; 
-    let lastCount = localStorage.getItem(sKey + "_last_count"); 
-    const isUpdated = lastCount !== null && Number(lastCount) !== currentCount;
-
-
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             d.innerHTML = `
-            ${isUpdated ? '<div class="update-badge">NEW</div>' : ''}
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div>
                 <div class="icon-area">${mode.icon}</div>
                 <div class="title">${cleanName}</div>
@@ -298,7 +279,6 @@
                 <div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
             `; 
             d.onclick = () => { 
-                localStorage.setItem((modePrefix === "_study" ? sKey : rKey) + "_last_count", currentCount);
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
@@ -311,13 +291,6 @@
 
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
-
-            const currentCount = mode.items.length; 
-    let lastCount = localStorage.getItem(rKey + "_last_count"); 
-    const isUpdated = lastCount !== null && Number(lastCount) !== currentCount;
-
-
-
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
             const rScore = doneDB[rKey + "_score"];
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 

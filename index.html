@@ -203,22 +203,63 @@
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
-    function smartSort(array, modePrefix) { 
-        return array.sort((a, b) => { 
-            const cleanA = a.title.trim(); const cleanB = b.title.trim();
-            const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix; 
-            const dateA = doneDB[nameA], dateB = doneDB[nameB]; 
-            if (modePrefix === "_review") {
-                const countA = (wrongDB[cleanA] || []).length; const countB = (wrongDB[cleanB] || []).length;
-                if (countA > 0 && countB === 0) return -1; if (countA === 0 && countB > 0) return 1;
-                if (countA > 0 && countB > 0) { if (!dateA && dateB) return -1; if (dateA && !dateB) return 1; if (dateA && dateB) { if (dateA < dateB) return -1; if (dateA > dateB) return 1; } }
-                return 0;
-            }
-            if (!dateA && dateB) return -1; if (dateA && !dateB) return 1;
-            if (dateA < dateB) return -1; if (dateA > dateB) return 1;
-            return 0;
-        }); 
-    }
+    function smartSort(array, modePrefix) {
+    const now = new Date();
+
+    // 📅 날짜 차이 계산기 (MM/DD -> 일수 차이)
+    const getDaysDiff = (dateStr) => {
+        if (!dateStr || dateStr === "미완료") return 0;
+        const [m, d] = dateStr.split('/').map(Number);
+        const targetDate = new Date(now.getFullYear(), m - 1, d);
+        // 미래 날짜로 인식되면 작년으로 처리 (해 바뀜 대응)
+        if (targetDate > now) targetDate.setFullYear(now.getFullYear() - 1);
+        return Math.floor((now - targetDate) / (1000 * 60 * 60 * 24));
+    };
+
+    return array.sort((a, b) => {
+        const cleanA = a.title.trim(); const cleanB = b.title.trim();
+        const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
+        
+        const dateA = doneDB[nameA] || "";
+        const dateB = doneDB[nameB] || "";
+        const scoreA = doneDB[nameA + "_score"];
+        const scoreB = doneDB[nameB + "_score"];
+
+        const diffA = getDaysDiff(dateA);
+        const diffB = getDaysDiff(dateB);
+
+        // 1️⃣ [최우선 순위] 30일 초과 과목 (망각 방지)
+        const isOver30A = diffA > 30;
+        const isOver30B = diffB > 30;
+
+        if (isOver30A || isOver30B) {
+            if (isOver30A && !isOver30B) return -1;
+            if (!isOver30A && isOver30B) return 1;
+            // 둘 다 30일 초과라면: 정답률 낮은 순 -> 날짜 오래된 순 -> 가나다순
+            if (scoreA !== scoreB) return (scoreA || 0) - (scoreB || 0);
+            if (dateA !== dateB) return dateA.localeCompare(dateB);
+            return cleanA.localeCompare(cleanB);
+        }
+
+        // 2️⃣ [2순위] 미완료 vs 정답률 있는 과목 분류
+        const hasScoreA = scoreA !== undefined;
+        const hasScoreB = scoreB !== undefined;
+
+        if (!hasScoreA && hasScoreB) return -1;
+        if (hasScoreA && !hasScoreB) return 1;
+
+        // 3️⃣ [3순위] 미완료 그룹 정렬: 날짜 오래된 순 -> 가나다순
+        if (!hasScoreA && !hasScoreB) {
+            if (dateA !== dateB) return dateA.localeCompare(dateB);
+            return cleanA.localeCompare(cleanB);
+        }
+
+        // 4️⃣ [4순위] 정답률 그룹 정렬: 정답률 낮은 순 -> 날짜 오래된 순 -> 가나다순
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        return cleanA.localeCompare(cleanB);
+    });
+}
 
     // 💡 1번&2번&3번&4번 수정사항 반영된 renderMenu
     function renderMenu() {

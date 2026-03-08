@@ -227,6 +227,17 @@
         const diffA = getDaysDiff(dateA);
         const diffB = getDaysDiff(dateB);
 
+        // ✅ [추가할 코드 시작] 복습 모드에서 0쌍(오답 없음)을 무조건 맨 뒤로 보냅니다.
+        if (modePrefix === "_review") {
+            const countA = (wrongDB[cleanA] || []).length;
+            const countB = (wrongDB[cleanB] || []).length;
+            
+            if (countA === 0 && countB !== 0) return 1;  // A가 0쌍이면 뒤로
+            if (countA !== 0 && countB === 0) return -1; // B가 0쌍이면 뒤로
+            if (countA === 0 && countB === 0) return cleanA.localeCompare(cleanB); // 둘 다 0쌍이면 가나다순
+        }
+        // ✅ [추가할 코드 끝]
+
         // 1️⃣ [30일 초과 과목] 판단
         const isOver30A = diffA > 30;
         const isOver30B = diffB > 30;

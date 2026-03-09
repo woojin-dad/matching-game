@@ -365,7 +365,20 @@
                         localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);
                     }
                 }
-            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const cleanName = currentActiveTitle; if(!wrongDB[cleanName]) wrongDB[cleanName] = []; if(!wrongDB[cleanName].some(w => w.t === t.item.t)) wrongDB[cleanName].push(t.item); if(!wrongDB[cleanName].some(w => w.t === d.item.t)) wrongDB[cleanName].push(d.item); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
+            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { 
+                    // 💡 화면 상단 제목을 직접 가져와서 오답 상자 이름으로 씁니다.
+                    const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
+                    
+                    if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
+                    
+                    if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) {
+                        wrongDB[activeTitle].push(t.item); 
+                    }
+                    if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) {
+                        wrongDB[activeTitle].push(d.item); 
+                    }
+                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
+                } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
             updateStatUI(); 
         }
     }

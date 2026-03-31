@@ -31,15 +31,15 @@
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 10px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
-
-        /* 🧡 주황색 NEW 뱃지 스타일 추가 */
+        
+        /* 🧡 주황색 NEW 뱃지 스타일 */
         .update-badge { 
             position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
             font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
             box-shadow: 0 4px 10px rgba(255,87,34,0.4); z-index: 100; animation: pulse 1.5s infinite; border: 2px solid white;
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
-        
+
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
@@ -116,9 +116,9 @@
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
     
-    // 💡 1번 수정: 학습 모드 문항 수 저장소 추가
+    // 💡 1번: 학습 모드 전용 문항 수 로컬 저장소
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
-    
+
     let currentActiveTitle = ""; let lastTime = 0;
 
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
@@ -158,7 +158,7 @@
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
     function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); if (popup.classList.contains('show') && (type === 'success' || type === 'info')) { text.innerText += "\n\n" + message; } else { text.innerText = message; } if (type === 'success' || type === 'info') { btnArea.style.display = 'none'; popup.classList.toggle('success-mode', type === 'success'); popup.classList.add('show'); clearTimeout(window.autoCloseTimer); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 7000); } else { btnArea.style.display = 'flex'; popup.classList.remove('success-mode'); popup.classList.add('show'); } }
     function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
-    function openResetPopup(e, title, type) { if(e) { e.preventDefault(); e.stopPropagation(); } const modeName = (type === 'study' ? '학습' : '복습'); const cleanName = title.trim(); showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); document.getElementById('btnOk').onclick = () => { const sKey = cleanName + "_study", rKey = cleanName + "_review"; if (type === 'study') { delete doneDB[sKey]; delete doneDB[sKey+"_score"]; delete perfectDB[sKey]; delete dailyLimitDB.counts[sKey]; } else { delete doneDB[rKey]; delete doneDB[rKey+"_score"]; delete wrongDB[cleanName]; delete perfectDB[rKey]; delete tryDB[cleanName]; delete dailyLimitDB.counts[rKey]; } localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); closeResetPopup(); renderMenu(); }; }
+    function openResetPopup(e, title, type) { if(e) { e.preventDefault(); e.stopPropagation(); } const modeName = (type === 'study' ? '학습' : '복습'); const cleanName = title.trim(); showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); document.getElementById('btnOk').onclick = () => { const sKey = cleanName + "_study", rKey = cleanName + "_review"; if (type === 'study') { delete doneDB[sKey]; delete doneDB[sKey+"_score"]; delete perfectDB[sKey]; delete lastCountsDB[cleanName]; } else { delete doneDB[rKey]; delete doneDB[rKey+"_score"]; delete wrongDB[cleanName]; delete perfectDB[rKey]; delete tryDB[cleanName]; } localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); closeResetPopup(); renderMenu(); }; }
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
@@ -205,16 +205,16 @@
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
-        // 💡 4, 6, 7번 수정: 학습 모드에만 문항 수 비교 NEW 뱃지 적용
+        // 📖 학습 모드 렌더링
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
             
-            // NEW 뱃지 조건: 시트 개수가 1개 이상이고, 로컬 저장값과 다를 때만
+            // 💡 4, 6, 7번 수정: 로컬 저장값이 1개 이상이고 && 시트와 다를 때만 NEW 표시
             const currentItemCount = mode.items.length;
             const lastRecordedCount = lastCountsDB[cleanName] || 0;
-            const hasUpdate = (currentItemCount > 0 && currentItemCount !== lastRecordedCount);
+            const hasUpdate = (currentItemCount > 0 && lastRecordedCount > 0 && currentItemCount !== lastRecordedCount);
 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             d.innerHTML = `
@@ -237,7 +237,7 @@
             studyGrid.appendChild(d); 
         });
 
-        // 🔄 복습 모드는 기존 로직 유지 (시트 비교 안 함)
+        // 🔄 복습 모드 렌더링 (학습 모드 전용 로직 적용하지 않음)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -270,14 +270,14 @@
 
     function startGame(title, items, isReview) { 
         window.isReviewMode = isReview; 
-        // 💡 현재 플레이하는 과목의 문항 수 보관
+        // 💡 1번: 학습 모드일 때 현재 문항 수 기억
         window.currentMatchCount = items.length;
         document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
         const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
         while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } 
         allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
     }
-
+    
     function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
@@ -303,7 +303,7 @@
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
                         
-                        // 💡 1, 5번 수정: 학습 모드 완료 시에만 현재 문항 수를 로컬에 저장 (NEW 뱃지 제거)
+                        // 💡 1번, 5번 수정: 학습 모드 완료 시 해당 과목 문항 수를 로컬에 저장 (NEW 뱃지 제거)
                         if(!window.isReviewMode) {
                             lastCountsDB[cleanName] = window.currentMatchCount || 0;
                             localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));

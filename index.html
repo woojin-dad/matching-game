@@ -32,7 +32,7 @@
         
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
 
-        /* 🧡 주황색 NEW 뱃지: 카드 왼쪽 상단에 배치 */
+        /* 🧡 주황색 NEW 뱃지 스타일 추가 */
         .update-badge { 
             position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
             font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
@@ -115,8 +115,10 @@
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
-    // 💡 추가: 마지막 플레이 문항 수 저장소
+    
+    // 💡 1번 수정: 학습 모드 문항 수 저장소 추가
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
+    
     let currentActiveTitle = ""; let lastTime = 0;
 
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
@@ -203,15 +205,16 @@
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
+        // 💡 4, 6, 7번 수정: 학습 모드에만 문항 수 비교 NEW 뱃지 적용
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
             
-            // 💡 NEW 뱃지 조건: 시트 문항 수 != 로컬 저장 문항 수
+            // NEW 뱃지 조건: 시트 개수가 1개 이상이고, 로컬 저장값과 다를 때만
             const currentItemCount = mode.items.length;
             const lastRecordedCount = lastCountsDB[cleanName] || 0;
-            const hasUpdate = (currentItemCount !== lastRecordedCount);
+            const hasUpdate = (currentItemCount > 0 && currentItemCount !== lastRecordedCount);
 
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             d.innerHTML = `
@@ -228,11 +231,13 @@
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
-                sessionStats = { trials: 0, hits: 0 }; startGame(cleanName, mode.items, false); 
+                sessionStats = { trials: 0, hits: 0 }; 
+                startGame(cleanName, mode.items, false); 
             }; 
             studyGrid.appendChild(d); 
         });
 
+        // 🔄 복습 모드는 기존 로직 유지 (시트 비교 안 함)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -240,12 +245,7 @@
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
             const perfectCount = perfectDB[rKey] || 0;
-            
-            // 💡 복습 모드 뱃지: 오답이 있고 잠기지 않았을 때
-            const hasReviewNew = rItems.length > 0 && !isLocked;
-
             r.innerHTML = `
-                ${hasReviewNew ? '<div class="update-badge">NEW</div>' : ''}
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
                 <div class="title">${cleanName}</div>
@@ -270,17 +270,14 @@
 
     function startGame(title, items, isReview) { 
         window.isReviewMode = isReview; 
-        window.currentMatchCount = items.length; // 💡 문항 수 임시 저장
+        // 💡 현재 플레이하는 과목의 문항 수 보관
+        window.currentMatchCount = items.length;
         document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
         const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
-        while(pool.length > 0) { 
-            const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; 
-            for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } 
-            if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; 
-        } 
+        while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } 
         allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
     }
-    
+
     function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
@@ -306,9 +303,11 @@
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
                         
-                        // 💡 게임 완료 시 현재 문항 수 저장 (NEW 뱃지 제거)
-                        lastCountsDB[cleanName] = window.currentMatchCount || 0;
-                        localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));
+                        // 💡 1, 5번 수정: 학습 모드 완료 시에만 현재 문항 수를 로컬에 저장 (NEW 뱃지 제거)
+                        if(!window.isReviewMode) {
+                            lastCountsDB[cleanName] = window.currentMatchCount || 0;
+                            localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));
+                        }
 
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
@@ -331,6 +330,7 @@
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
+    function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
     updateStatUI(); fetchSheetData();
 </script>
 </body>

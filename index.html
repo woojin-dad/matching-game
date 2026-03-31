@@ -32,6 +32,7 @@
         
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
 
+        /* 🧡 학습용 NEW 뱃지 스타일 */
         .update-badge { 
             position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
             font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
@@ -115,9 +116,9 @@
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
     
-    // 💡 1번: 문항 수 저장소
+    // 💡 1번: 학습 전용 문항 수 저장소 로드
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
-    
+
     let currentActiveTitle = ""; let lastTime = 0;
 
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
@@ -204,13 +205,13 @@
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
-        // 📖 학습 모드
+        // 📖 학습 모드: 뱃지 로직 업데이트 (조건 4, 6, 7 적용)
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
             
-            // 💡 6, 7번 조건 수정: 로컬 저장값이 undefined가 아니고 && 0보다 크고 && 현재 시트와 다를 때만 NEW
+            // 💡 NEW 뱃지 조건: 로컬 저장값이 undefined가 아니고 && 1 이상이면서 && 시트 개수와 다를 때만
             const currentItemCount = mode.items.length;
             const lastRecordedCount = lastCountsDB[cleanName]; 
             const hasUpdate = (
@@ -241,7 +242,7 @@
             studyGrid.appendChild(d); 
         });
 
-        // 🔄 복습 모드 (조건 7: 학습 모드 로직 적용 안함)
+        // 🔄 복습 모드: 원본 코드 유지 (조건 8, 9 적용)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -249,6 +250,8 @@
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
             const perfectCount = perfectDB[rKey] || 0;
+            
+            // 💡 원본 로직 그대로 유지
             r.innerHTML = `
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
@@ -274,7 +277,7 @@
 
     function startGame(title, items, isReview) { 
         window.isReviewMode = isReview; 
-        window.currentMatchCount = items.length; // 문항 수 기억
+        window.currentMatchCount = items.length; // 💡 1번: 학습 시 문항 수 임시 보관
         document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
         const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
         while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
@@ -305,7 +308,7 @@
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
                         
-                        // 💡 1번, 5번 수정: 학습 모드 완료 시 해당 과목 문항 수를 로컬에 저장 (NEW 뱃지 제거)
+                        // 💡 1번, 5번 수정: 학습 모드일 때만 문항 수를 로컬에 저장 (NEW 뱃지 제거)
                         if(!window.isReviewMode) {
                             lastCountsDB[cleanName] = window.currentMatchCount || 0;
                             localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));

@@ -24,15 +24,21 @@
         .category-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 18px; margin-top: 20px; color: #374151; border-left: 6px solid; padding-left: 12px; }
         .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 16px; padding-bottom: 40px; justify-content: center; justify-items: center; }
         
-        /* 💡 4번 수정: 카드 높이와 정렬 방식 최적화 */
         .mode-card { position: relative; background: #3C1E1E; color: #FEE500; width: 100%; max-width: 160px; border-radius: 26px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; cursor: pointer; transition: transform 0.1s; box-shadow: 0 8px 0 #1a0d0d; padding: 20px 10px; text-align: center; -webkit-user-select: none; user-select: none; touch-action: manipulation; min-height: 280px; height: auto; }
         .mode-card:active { transform: translateY(4px); box-shadow: 0 4px 0 #1a0d0d; }
         .mode-card.locked { background: #94a3b8 !important; box-shadow: 0 8px 0 #64748b !important; opacity: 0.8; filter: grayscale(1); }
         .mode-card .icon-area { font-size: 2.8rem; margin-bottom: 6px; line-height: 1; }
         .mode-card .title { font-size: 1.15rem; font-weight: 900; margin-top: 4px; margin-bottom: 10px; line-height: 1.2; color: #FFFFFF; word-break: keep-all; }
         
-        /* 💡 2번&3번 수정: 모든 배지 간격을 margin-top: 4px로 통일 */
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
+
+        /* 🧡 주황색 NEW 뱃지: 카드 왼쪽 상단에 배치 */
+        .update-badge { 
+            position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
+            font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
+            box-shadow: 0 4px 10px rgba(255,87,34,0.4); z-index: 100; animation: pulse 1.5s infinite; border: 2px solid white;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
         
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
@@ -86,16 +92,10 @@
     const finalScriptUrl = "https://script.google.com/macros/s/AKfycbyWobZtNiP8eFtdxTzk9ZXCOfaIyEZKN_hlAsjMggj6OEM-PXbn7g_YG6y1EJhcWa0Fyg/exec";
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
-    // 🎯 오늘 하루 전체 성적 저장소 로직
     const todayStr = new Date().toLocaleDateString();
     let dailyLog = JSON.parse(localStorage.getItem('woojin_daily_log')) || { date: "", trials: 0, hits: 0 };
-    // 💡 이번 판 전용 계산기 (메모리에만 존재)
     let sessionStats = { trials: 0, hits: 0 };
-
-    if (dailyLog.date !== todayStr) {
-        dailyLog = { date: todayStr, trials: 0, hits: 0 };
-        localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog));
-    }
+    if (dailyLog.date !== todayStr) { dailyLog = { date: todayStr, trials: 0, hits: 0 }; localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog)); }
 
     function updateStatUI() {
         const rate = dailyLog.trials === 0 ? 0 : Math.round((dailyLog.hits / dailyLog.trials) * 100);
@@ -104,43 +104,8 @@
         localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog));
     }
 
-    // 🎵 음악 설정
     const mySongs = [
-        "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/crystal.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/girasol.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/payday.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/payday2.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3",
-"https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
+        "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3","https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3","https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3","https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3","https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3","https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3","https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3","https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3","https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3","https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3","https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3","https://woojin-dad.github.io/matching-game/bgm/crystal.mp3","https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3","https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3","https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3","https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3","https://woojin-dad.github.io/matching-game/bgm/girasol.mp3","https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3","https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3","https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3","https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3","https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3","https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3","https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3","https://woojin-dad.github.io/matching-game/bgm/payday.mp3","https://woojin-dad.github.io/matching-game/bgm/payday2.mp3","https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3","https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3","https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3","https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3","https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3","https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3","https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
     ];
 
     let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
@@ -150,8 +115,9 @@
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
-    let currentActiveTitle = "";
-    let lastTime = 0;
+    // 💡 추가: 마지막 플레이 문항 수 저장소
+    let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
+    let currentActiveTitle = ""; let lastTime = 0;
 
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
@@ -163,27 +129,19 @@
     function setRandomBGM() {
         const randomURL = mySongs[Math.floor(Math.random() * mySongs.length)];
         bgm.src = randomURL; bgm.load(); bgm.volume = 0.3;
-        if (document.getElementById('musicIcon').innerText === '🎵') {
-            bgm.play().catch(e => console.log("자동재생 대기"));
-        }
+        if (document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => console.log("자동재생 대기")); }
     }
 
     function toggleBGM() {
         if (!bgm.src) { setRandomBGM(); return; }
-        if (bgm.paused) {
-            bgm.play().then(() => { document.getElementById('musicIcon').innerText = '🎵'; }).catch(e => console.log("터치 필요"));
-        } else {
-            bgm.pause();
-            document.getElementById('musicIcon').innerText = '🔇';
-        }
+        if (bgm.paused) { bgm.play().then(() => { document.getElementById('musicIcon').innerText = '🎵'; }).catch(e => console.log("터치 필요")); }
+        else { bgm.pause(); document.getElementById('musicIcon').innerText = '🔇'; }
     }
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSound(type) {
         if(audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); const now = audioCtx.currentTime;
         if (type === 'click') { osc.type = 'sine'; osc.frequency.setValueAtTime(400, now); gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1); }
         else if (type === 'correct') { osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.2); gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(now); osc.stop(now + 0.3); }
         else if (type === 'wrong') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(now); osc.stop(now + 0.2); }
@@ -204,74 +162,43 @@
     async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); } catch (e) { alert("데이터 로딩 실패!"); } }
 
     function smartSort(array, modePrefix) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const getDaysDiff = (dateStr) => {
-        if (!dateStr || dateStr === "미완료") return -1;
-        const [m, d] = dateStr.split('/').map(Number);
-        let targetDate = new Date(today.getFullYear(), m - 1, d);
-        if (targetDate > today) targetDate.setFullYear(today.getFullYear() - 1);
-        return Math.floor((today - targetDate) / (1000 * 60 * 60 * 24));
-    };
-
-    return array.sort((a, b) => {
-        const cleanA = a.title.trim(); const cleanB = b.title.trim();
-        const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
-        
-        const dateA = doneDB[nameA] || "";
-        const dateB = doneDB[nameB] || "";
-        const scoreA = doneDB[nameA + "_score"];
-        const scoreB = doneDB[nameB + "_score"];
-
-        const diffA = getDaysDiff(dateA);
-        const diffB = getDaysDiff(dateB);
-
-        // ✅ [추가할 코드 시작] 복습 모드에서 0쌍(오답 없음)을 무조건 맨 뒤로 보냅니다.
-        if (modePrefix === "_review") {
-            const countA = (wrongDB[cleanA] || []).length;
-            const countB = (wrongDB[cleanB] || []).length;
-            
-            if (countA === 0 && countB !== 0) return 1;  // A가 0쌍이면 뒤로
-            if (countA !== 0 && countB === 0) return -1; // B가 0쌍이면 뒤로
-            if (countA === 0 && countB === 0) return cleanA.localeCompare(cleanB); // 둘 다 0쌍이면 가나다순
-        }
-        // ✅ [추가할 코드 끝]
-
-        // 1️⃣ [30일 초과 과목] 판단
-        const isOver30A = diffA > 30;
-        const isOver30B = diffB > 30;
-
-        if (isOver30A || isOver30B) {
-            if (isOver30A && !isOver30B) return -1;
-            if (!isOver30A && isOver30B) return 1;
-            // 둘 다 30일 초과 시: 정답률 낮은 순 -> 날짜 오래된 순 -> 가나다순
-            if (scoreA !== scoreB) return (scoreA || 0) - (scoreB || 0);
+        const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const getDaysDiff = (dateStr) => {
+            if (!dateStr || dateStr === "미완료") return -1;
+            const [m, d] = dateStr.split('/').map(Number); let targetDate = new Date(today.getFullYear(), m - 1, d);
+            if (targetDate > today) targetDate.setFullYear(today.getFullYear() - 1);
+            return Math.floor((today - targetDate) / (1000 * 60 * 60 * 24));
+        };
+        return array.sort((a, b) => {
+            const cleanA = a.title.trim(); const cleanB = b.title.trim();
+            const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
+            const dateA = doneDB[nameA] || ""; const dateB = doneDB[nameB] || "";
+            const scoreA = doneDB[nameA + "_score"]; const scoreB = doneDB[nameB + "_score"];
+            const diffA = getDaysDiff(dateA); const diffB = getDaysDiff(dateB);
+            if (modePrefix === "_review") {
+                const countA = (wrongDB[cleanA] || []).length; const countB = (wrongDB[cleanB] || []).length;
+                if (countA === 0 && countB !== 0) return 1; if (countA !== 0 && countB === 0) return -1;
+                if (countA === 0 && countB === 0) return cleanA.localeCompare(cleanB);
+            }
+            const isOver30A = diffA > 30; const isOver30B = diffB > 30;
+            if (isOver30A || isOver30B) {
+                if (isOver30A && !isOver30B) return -1; if (!isOver30A && isOver30B) return 1;
+                if (scoreA !== scoreB) return (scoreA || 0) - (scoreB || 0);
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                return cleanA.localeCompare(cleanB);
+            }
+            const hasScoreA = scoreA !== undefined; const hasScoreB = scoreB !== undefined;
+            if (!hasScoreA && hasScoreB) return -1; if (hasScoreA && !hasScoreB) return 1;
+            if (!hasScoreA && !hasScoreB) {
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                return cleanA.localeCompare(cleanB);
+            }
+            if (scoreA !== scoreB) return scoreA - scoreB;
             if (dateA !== dateB) return dateA.localeCompare(dateB);
             return cleanA.localeCompare(cleanB);
-        }
+        });
+    }
 
-        // 2️⃣ [정답률 미완료 과목] vs [정답률 있는 과목] 분류
-        const hasScoreA = scoreA !== undefined;
-        const hasScoreB = scoreB !== undefined;
-
-        if (!hasScoreA && hasScoreB) return -1;
-        if (hasScoreA && !hasScoreB) return 1;
-
-        // 3️⃣ [정답률 미완료 그룹 내 정렬] 날짜 오래된 순 -> 가나다순
-        if (!hasScoreA && !hasScoreB) {
-            if (dateA !== dateB) return dateA.localeCompare(dateB);
-            return cleanA.localeCompare(cleanB);
-        }
-
-        // 4️⃣ [정답률 있는 그룹 내 정렬] 정답률 낮은 순 -> 날짜 오래된 순 -> 가나다순
-        if (scoreA !== scoreB) return scoreA - scoreB;
-        if (dateA !== dateB) return dateA.localeCompare(dateB);
-        return cleanA.localeCompare(cleanB);
-    });
-}
-
-    // 💡 1번&2번&3번&4번 수정사항 반영된 renderMenu
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
@@ -280,12 +207,19 @@
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
+            
+            // 💡 NEW 뱃지 조건: 시트 문항 수 != 로컬 저장 문항 수
+            const currentItemCount = mode.items.length;
+            const lastRecordedCount = lastCountsDB[cleanName] || 0;
+            const hasUpdate = (currentItemCount !== lastRecordedCount);
+
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             d.innerHTML = `
+                ${hasUpdate ? '<div class="update-badge">NEW</div>' : ''}
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div>
                 <div class="icon-area">${mode.icon}</div>
                 <div class="title">${cleanName}</div>
-                <div class="info-badge">📋 ${mode.items.length}쌍</div>
+                <div class="info-badge">📋 ${currentItemCount}쌍</div>
                 <div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div>
                 <div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
             `; 
@@ -294,8 +228,7 @@
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
-                sessionStats = { trials: 0, hits: 0 }; 
-                startGame(cleanName, mode.items, false); 
+                sessionStats = { trials: 0, hits: 0 }; startGame(cleanName, mode.items, false); 
             }; 
             studyGrid.appendChild(d); 
         });
@@ -307,7 +240,12 @@
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
             const perfectCount = perfectDB[rKey] || 0;
+            
+            // 💡 복습 모드 뱃지: 오답이 있고 잠기지 않았을 때
+            const hasReviewNew = rItems.length > 0 && !isLocked;
+
             r.innerHTML = `
+                ${hasReviewNew ? '<div class="update-badge">NEW</div>' : ''}
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
                 <div class="title">${cleanName}</div>
@@ -330,7 +268,19 @@
         });
     }
 
-    function startGame(title, items, isReview) { window.isReviewMode = isReview; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); }
+    function startGame(title, items, isReview) { 
+        window.isReviewMode = isReview; 
+        window.currentMatchCount = items.length; // 💡 문항 수 임시 저장
+        document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
+        const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
+        while(pool.length > 0) { 
+            const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; 
+            for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } 
+            if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; 
+        } 
+        allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
+    }
+    
     function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
 
     function selectCard(item, type, el) {
@@ -355,6 +305,11 @@
                         if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
+                        
+                        // 💡 게임 완료 시 현재 문항 수 저장 (NEW 뱃지 제거)
+                        lastCountsDB[cleanName] = window.currentMatchCount || 0;
+                        localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));
+
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
@@ -366,24 +321,16 @@
                     }
                 }
             } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { 
-                    // 💡 화면 상단 제목을 직접 가져와서 오답 상자 이름으로 씁니다.
                     const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
-                    
                     if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
-                    
-                    if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) {
-                        wrongDB[activeTitle].push(t.item); 
-                    }
-                    if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) {
-                        wrongDB[activeTitle].push(d.item); 
-                    }
+                    if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); }
+                    if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); }
                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
                 } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
             updateStatUI(); 
         }
     }
     function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
-    function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
     updateStatUI(); fetchSheetData();
 </script>
 </body>

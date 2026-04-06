@@ -327,8 +327,19 @@
             } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { 
                     const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
                     if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
+
+                    const beforeCount = wrongDB[activeTitle].length;
+
+
                     if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); }
                     if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); }
+
+                    const afterCount = wrongDB[activeTitle].length;
+        if (beforeCount < afterCount) {
+            delete doneDB[activeTitle + "_review_score"]; // 개수 늘어나면 점수 삭제
+            localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); // 삭제 상태 저장
+        }
+
                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
                 } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
             updateStatUI(); 

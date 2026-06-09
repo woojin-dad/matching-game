@@ -161,9 +161,10 @@
                 state.coins = Number(data.coins);
                 state.giftCount = Number(data.gifts) || 0;
                 state.totalMatchedCount = Number(data.matched) || 0;
-            }
+            
             state.maxGauge = Number(data.maxGauge) || 500; 
             updateUI(false); 
+        }
         } catch (e) {} 
     }
 

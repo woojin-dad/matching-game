@@ -32,6 +32,7 @@
         
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
 
+        /* 🧡 학습용 NEW 뱃지 스타일 */
         .update-badge { 
             position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
             font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
@@ -114,6 +115,8 @@
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
+    
+    // 💡 1번: 학습 전용 문항 수 저장소 로드
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
 
     let currentActiveTitle = ""; let lastTime = 0;
@@ -149,24 +152,7 @@
     }
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
-    
-    // 💡 동기화 시 0으로 초기화되는 현상 방지 보호 로직 추가
-    async function syncFromCloud() { 
-        try { 
-            const response = await fetch(finalScriptUrl); 
-            const data = await response.json(); 
-            
-            // 데이터가 유효할 때만 로컬 상태 업데이트
-            if (data.coins !== undefined && Number(data.coins) > 0) {
-                state.coins = Number(data.coins);
-                state.giftCount = Number(data.gifts) || 0;
-                state.totalMatchedCount = Number(data.matched) || 0;
-            }
-            state.maxGauge = Number(data.maxGauge) || 500; 
-            updateUI(false); 
-        } catch (e) {} 
-    }
-
+    async function syncFromCloud() { try { const response = await fetch(finalScriptUrl); const data = await response.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = Number(data.maxGauge) || 500; updateUI(false); } catch (e) {} }
     async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해! 선물 1개와 1000코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
     function updateUI(send = true) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); document.getElementById('giftCount').innerText = state.giftCount; const progress = (state.totalMatchedCount / state.maxGauge) * 100; document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; if(send) syncToCloud(); }
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
@@ -218,18 +204,45 @@
     function renderMenu() {
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
+        
+        // 📖 학습 모드: 뱃지 로직 업데이트 (조건 4, 6, 7 적용)
         smartSort([...gameData], "_study").forEach((mode) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
+            
+            // 💡 NEW 뱃지 조건: 로컬 저장값이 undefined가 아니고 && 1 이상이면서 && 시트 개수와 다를 때만
             const currentItemCount = mode.items.length;
             const lastRecordedCount = lastCountsDB[cleanName]; 
-            const hasUpdate = (lastRecordedCount !== undefined && lastRecordedCount > 0 && currentItemCount > 0 && currentItemCount !== lastRecordedCount);
+            const hasUpdate = (
+                lastRecordedCount !== undefined && 
+                lastRecordedCount > 0 && 
+                currentItemCount > 0 && 
+                currentItemCount !== lastRecordedCount
+            );
+
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
-            d.innerHTML = `${hasUpdate ? '<div class="update-badge">NEW</div>' : ''}<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${currentItemCount}쌍</div><div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div><div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>`; 
-            d.onclick = () => { if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if (!bgm.src) { setRandomBGM(); } if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); } sessionStats = { trials: 0, hits: 0 }; startGame(cleanName, mode.items, false); }; 
+            d.innerHTML = `
+                ${hasUpdate ? '<div class="update-badge">NEW</div>' : ''}
+                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div>
+                <div class="icon-area">${mode.icon}</div>
+                <div class="title">${cleanName}</div>
+                <div class="info-badge">📋 ${currentItemCount}쌍</div>
+                <div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div>
+                <div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
+            `; 
+            d.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                if (!bgm.src) { setRandomBGM(); }
+                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
+                sessionStats = { trials: 0, hits: 0 }; 
+                startGame(cleanName, mode.items, false); 
+            }; 
             studyGrid.appendChild(d); 
         });
+
+        // 🔄 복습 모드: 원본 코드 유지 (조건 8, 9 적용)
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -237,15 +250,34 @@
             const r = document.createElement('div'); r.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
             const perfectCount = perfectDB[rKey] || 0;
-            r.innerHTML = `<div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div><div class="icon-area">${mode.icon}</div><div class="title">${cleanName}</div><div class="info-badge">📋 ${rItems.length}쌍</div><div class="info-badge">🥇 ${perfectCount} / 5회</div><div class="info-badge">🚀 도전: ${tryDB[cleanName] || 0}회</div><div class="info-badge">📅 ${doneDB[rKey] || "미완료"}</div><div class="info-badge">🎯 ${rScore !== undefined ? rScore + '%' : '미완료'}</div>`; 
-            r.onclick = () => { if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } state.isPerfect = true; currentActiveTitle = cleanName; if (!bgm.src) { setRandomBGM(); } if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); } sessionStats = { trials: 0, hits: 0 }; if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 게 없어요! ✨", 'success'); }; 
+            
+            // 💡 원본 로직 그대로 유지
+            r.innerHTML = `
+                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
+                <div class="icon-area">${mode.icon}</div>
+                <div class="title">${cleanName}</div>
+                <div class="info-badge">📋 ${rItems.length}쌍</div>
+                <div class="info-badge">🥇 ${perfectCount} / 5회</div>
+                <div class="info-badge">🚀 도전: ${tryDB[cleanName] || 0}회</div>
+                <div class="info-badge">📅 ${doneDB[rKey] || "미완료"}</div>
+                <div class="info-badge">🎯 ${rScore !== undefined ? rScore + '%' : '미완료'}</div>
+            `; 
+            r.onclick = () => { 
+                if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                if (!bgm.src) { setRandomBGM(); }
+                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
+                sessionStats = { trials: 0, hits: 0 };
+                if(rItems.length > 0) startGame(cleanName, rItems, true); 
+                else showToast("복습할 게 없어요! ✨", 'success'); 
+            }; 
             reviewGrid.appendChild(r); 
         });
     }
 
     function startGame(title, items, isReview) { 
         window.isReviewMode = isReview; 
-        window.currentMatchCount = items.length;
+        window.currentMatchCount = items.length; // 💡 1번: 학습 시 문항 수 임시 보관
         document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
         const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
         while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
@@ -275,7 +307,13 @@
                         if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
                         doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
-                        if(!window.isReviewMode) { lastCountsDB[cleanName] = window.currentMatchCount || 0; localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); }
+                        
+                        // 💡 1번, 5번 수정: 학습 모드일 때만 문항 수를 로컬에 저장 (NEW 뱃지 제거)
+                        if(!window.isReviewMode) {
+                            lastCountsDB[cleanName] = window.currentMatchCount || 0;
+                            localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));
+                        }
+
                         if(state.isPerfect) {
                             if(window.isReviewMode) {
                                 perfectDB[key] = (perfectDB[key] || 0) + 1;
@@ -289,11 +327,19 @@
             } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { 
                     const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
                     if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
+
                     const beforeCount = wrongDB[activeTitle].length;
+
+
                     if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); }
                     if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); }
+
                     const afterCount = wrongDB[activeTitle].length;
-                    if (beforeCount < afterCount) { delete doneDB[activeTitle + "_review_score"]; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); }
+        if (beforeCount < afterCount) {
+            delete doneDB[activeTitle + "_review_score"]; // 개수 늘어나면 점수 삭제
+            localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); // 삭제 상태 저장
+        }
+
                     localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
                 } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
             updateStatUI(); 

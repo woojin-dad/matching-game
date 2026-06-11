@@ -150,22 +150,25 @@
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     
-    // 💡 동기화 시 0으로 초기화되는 현상 방지 보호 로직 추가
+    // 🟢 안전하게 수정된 syncFromCloud 함수
     async function syncFromCloud() { 
         try { 
             const response = await fetch(finalScriptUrl); 
             const data = await response.json(); 
             
-            // 데이터가 유효할 때만 로컬 상태 업데이트
+            // 데이터가 유효하고 0보다 클 때만 안전하게 적용
             if (data.coins !== undefined && Number(data.coins) > 0) {
                 state.coins = Number(data.coins);
                 state.giftCount = Number(data.gifts) || 0;
                 state.totalMatchedCount = Number(data.matched) || 0;
-            
-            state.maxGauge = Number(data.maxGauge) || 500; 
-            updateUI(false); 
-        }
-        } catch (e) {} 
+                state.maxGauge = Number(data.maxGauge) || 500; 
+                
+                // 꼼짝 못 하게 조건문 안으로 완벽하게 격리수집!
+                updateUI(false); 
+            }
+        } catch (e) {
+            console.log("클라우드 로딩 실패: 원래 있던 로컬 데이터를 보존합니다.");
+        } 
     }
 
     async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해! 선물 1개와 1000코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }

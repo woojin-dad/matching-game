@@ -115,8 +115,6 @@
     let perfectDB = JSON.parse(localStorage.getItem('woojin_perfect_v1')) || {};
     let dailyLimitDB = JSON.parse(localStorage.getItem('woojin_daily_limit_v3')) || { date: "", counts: {} };
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
-    
-    // 💡 1번: 학습 전용 문항 수 저장소 로드
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
 
     let currentActiveTitle = ""; let lastTime = 0;
@@ -152,7 +150,26 @@
     }
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
-    async function syncFromCloud() { try { const response = await fetch(finalScriptUrl); const data = await response.json(); state.coins = Number(data.coins) || 0; state.totalMatchedCount = Number(data.matched) || 0; state.giftCount = Number(data.gifts) || 0; state.maxGauge = Number(data.maxGauge) || 500; updateUI(false); } catch (e) {} }
+    
+    // 💡 데이터 보호장치 중괄호 격리 완벽 수리 버전
+    async function syncFromCloud() { 
+        try { 
+            const response = await fetch(finalScriptUrl); 
+            const data = await response.json(); 
+            
+            if (data.coins !== undefined && Number(data.coins) > 0) {
+                state.coins = Number(data.coins);
+                state.giftCount = Number(data.gifts) || 0;
+                state.totalMatchedCount = Number(data.matched) || 0;
+                state.maxGauge = Number(data.maxGauge) || 500; 
+                
+                updateUI(false); 
+            }
+        } catch (e) {
+            console.log("클라우드 로딩 실패: 로컬 데이터를 보존합니다.");
+        } 
+    }
+
     async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 1000; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(1000); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해! 선물 1개와 1000코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
     function updateUI(send = true) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); document.getElementById('giftCount').innerText = state.giftCount; const progress = (state.totalMatchedCount / state.maxGauge) * 100; document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; if(send) syncToCloud(); }
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
@@ -264,90 +281,4 @@
             `; 
             r.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
-                state.isPerfect = true; currentActiveTitle = cleanName; 
-                if (!bgm.src) { setRandomBGM(); }
-                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
-                sessionStats = { trials: 0, hits: 0 };
-                if(rItems.length > 0) startGame(cleanName, rItems, true); 
-                else showToast("복습할 게 없어요! ✨", 'success'); 
-            }; 
-            reviewGrid.appendChild(r); 
-        });
-    }
-
-    function startGame(title, items, isReview) { 
-        window.isReviewMode = isReview; 
-        window.currentMatchCount = items.length; // 💡 1번: 학습 시 문항 수 임시 보관
-        document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; 
-        const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; 
-        while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); 
-    }
-    
-    function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); }
-
-    function selectCard(item, type, el) {
-        if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return;
-        playSound('click');
-        if(type === 'term') { if(state.selectedTerm && state.selectedTerm.el === el) { el.classList.remove('selected'); state.selectedTerm = null; return; } document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; }
-        else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; }
-        el.classList.add('selected');
-        if(state.selectedTerm && state.selectedDef) {
-            dailyLog.trials++; sessionStats.trials++; 
-            const t = state.selectedTerm, d = state.selectedDef;
-            if(t.item.t === d.item.t || t.item.d === d.item.d) {
-                dailyLog.hits++; sessionStats.hits++; 
-                playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null;
-                if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) {
-                    if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); }
-                    else {
-                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`;
-                        const cleanName = currentActiveTitle; const key = cleanName + (window.isReviewMode ? "_review" : "_study");
-                        const finalScore = Math.round((sessionStats.hits / sessionStats.trials) * 100);
-                        doneDB[key + "_score"] = finalScore;
-                        if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                        doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB));
-                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
-                        
-                        // 💡 1번, 5번 수정: 학습 모드일 때만 문항 수를 로컬에 저장 (NEW 뱃지 제거)
-                        if(!window.isReviewMode) {
-                            lastCountsDB[cleanName] = window.currentMatchCount || 0;
-                            localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB));
-                        }
-
-                        if(state.isPerfect) {
-                            if(window.isReviewMode) {
-                                perfectDB[key] = (perfectDB[key] || 0) + 1;
-                                if(perfectDB[key] >= 5) { state.coins += 200; animateCoinIncrease(200); showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 200코인 획득! 🪙`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); }
-                                else { showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)`, "success"); }
-                            } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); }
-                        } else { showToast(`👍 [${cleanName}] 완료!`, "info"); }
-                        localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500);
-                    }
-                }
-            } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { 
-                    const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim();
-                    if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
-
-                    const beforeCount = wrongDB[activeTitle].length;
-
-
-                    if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); }
-                    if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); }
-
-                    const afterCount = wrongDB[activeTitle].length;
-        if (beforeCount < afterCount) {
-            delete doneDB[activeTitle + "_review_score"]; // 개수 늘어나면 점수 삭제
-            localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); // 삭제 상태 저장
-        }
-
-                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
-                } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); }
-            updateStatUI(); 
-        }
-    }
-    function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); }
-    function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
-    updateStatUI(); fetchSheetData();
-</script>
-</body>
-</html>
+                state.isPerfect = true; currentActiveTitle = cleanName; if (!bgm.src) { setRandomBGM(); } if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); } sessionStats = { trials: 0, hits: 0 }; if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 게 없어요! ✨", 'success'); }; reviewGrid.appendChild(r); }); } function startGame(title, items, isReview) { window.isReviewMode = isReview; window.currentMatchCount = items.length; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'visible'; const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); } function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); } function selectCard(item, type, el) { if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return; playSound('click'); if(type === 'term') { if(state.selectedTerm && state.selectedTerm.el === el) { el.classList.remove('selected'); state.selectedTerm = null; return; } document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; } else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; } el.classList.add('selected'); if(state.selectedTerm && state.selectedDef) { dailyLog.trials++; sessionStats.trials++; const t = state.selectedTerm, d = state.selectedDef; if(t.item.t === d.item.t || t.item.d === d.item.d) { dailyLog.hits++; sessionStats.hits++; playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null; if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) { if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); } else { const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`; const cleanName = currentActiveTitle; const key = cleanName + (window.isReviewMode ? "_review" : "_study"); const finalScore = Math.round((sessionStats.hits / sessionStats.trials) * 100); doneDB[key + "_score"] = finalScore; if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); } doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); if(!window.isReviewMode) { lastCountsDB[cleanName] = window.currentMatchCount || 0; localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); } if(state.isPerfect) { if(window.isReviewMode) { perfectDB[key] = (perfectDB[key] || 0) + 1; if(perfectDB[key] >= 5) { state.coins += 200; animateCoinIncrease(200); showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 200코인 획득! 🪙`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); } else { showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)`, "success"); } } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); } } else { showToast(`👍 [${cleanName}] 완료!`, "info"); } localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500); } } } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim(); if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; const beforeCount = wrongDB[activeTitle].length; if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); } if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); } const afterCount = wrongDB[activeTitle].length; if (beforeCount < afterCount) { delete doneDB[activeTitle + "_review_score"]; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); } localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); } updateStatUI(); } } function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); } function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); } updateStatUI(); fetchSheetData(); </script> </body> </html>

@@ -223,7 +223,7 @@
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
         // 📖 학습 모드: 뱃지 로직 업데이트 (조건 4, 6, 7 적용)
-        smartSort([...gameData], "_study").forEach((mode) => { 
+        smartSort([...gameData], "_study").forEach((mode, idx) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
@@ -250,6 +250,10 @@
             `; 
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
+                if (idx > 0) { 
+        showToast("첫 번째 과목부터 먼저 완료해야 해요! ☝️", 'info'); 
+        return; 
+    }
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }

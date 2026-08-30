@@ -191,6 +191,18 @@
         return array.sort((a, b) => {
             const cleanA = a.title.trim(); const cleanB = b.title.trim();
             const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
+
+            // 🟢 0순위: 오늘 완료된 과목(잠김)은 뒤로 보냄
+            const maxLimit = (modePrefix === "_review" ? 2 : 1);
+            const isLockedA = (dailyLimitDB.counts[nameA] || 0) >= maxLimit;
+            const isLockedB = (dailyLimitDB.counts[nameB] || 0) >= maxLimit;
+
+            if (!isLockedA && isLockedB) return -1; // A만 활성이면 A가 앞
+            if (isLockedA && !isLockedB) return 1;  // B만 활성이면 B가 앞
+            // 둘 다 활성이거나 둘 다 비활성이면 아래 기존 스마트 정렬 로직을 그대로 수행
+
+
+            
             const dateA = doneDB[nameA] || ""; const dateB = doneDB[nameB] || "";
             const scoreA = doneDB[nameA + "_score"]; const scoreB = doneDB[nameB + "_score"];
             const diffA = getDaysDiff(dateA); const diffB = getDaysDiff(dateB);

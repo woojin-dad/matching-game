@@ -108,7 +108,19 @@
         "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3","https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3","https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3","https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3","https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3","https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3","https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3","https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3","https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3","https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3","https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3","https://woojin-dad.github.io/matching-game/bgm/crystal.mp3","https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3","https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3","https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3","https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3","https://woojin-dad.github.io/matching-game/bgm/girasol.mp3","https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3","https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3","https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3","https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3","https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3","https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3","https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3","https://woojin-dad.github.io/matching-game/bgm/payday.mp3","https://woojin-dad.github.io/matching-game/bgm/payday2.mp3","https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3","https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3","https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3","https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3","https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3","https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3","https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
     ];
 
-    let state = { coins: 0, totalMatchedCount: 0, giftCount: 0, maxGauge: 500, selectedTerm: null, selectedDef: null, isPerfect: true };
+    // 🛡️ [안전장치 1] 기기 로컬 백업을 기본값으로 불러와 인터넷 단절 시 0점 초기화 원천 차단
+    let savedWallet = JSON.parse(localStorage.getItem('woojin_wallet_backup')) || { coins: 0, matched: 0, gifts: 0 };
+    let state = { 
+        coins: savedWallet.coins || 0, 
+        totalMatchedCount: savedWallet.matched || 0, 
+        giftCount: savedWallet.gifts || 0, 
+        maxGauge: 500, 
+        selectedTerm: null, 
+        selectedDef: null, 
+        isPerfect: true,
+        isLoadedFromCloud: false // 🟢 클라우드 데이터 정상 로딩 여부 확인 깃발
+    };
+
     let gameData = [], currentPage = 0, allCurrentItems = [], pagePairs = [];
     let wrongDB = JSON.parse(localStorage.getItem('woojin_wrong_v3')) || {};
     let doneDB = JSON.parse(localStorage.getItem('woojin_done_v1')) || {};
@@ -151,37 +163,152 @@
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     
-    // 💡 데이터 보호장치 중괄호 격리 완벽 수리 버전
+    // 🛡️ [안전장치 2] 클라우드 로드 성공 시에만 갱신 및 로컬 백업 자동 연동
     async function syncFromCloud() { 
         try { 
             const response = await fetch(finalScriptUrl); 
             const data = await response.json(); 
             
-            if (data.coins !== undefined && Number(data.coins) > 0) {
-                state.coins = Number(data.coins);
+            if (data.coins !== undefined) {
+                state.coins = Number(data.coins) || 0;
                 state.giftCount = Number(data.gifts) || 0;
                 state.totalMatchedCount = Number(data.matched) || 0;
                 state.maxGauge = Number(data.maxGauge) || 500; 
+                state.isLoadedFromCloud = true; // 클라우드 인증 완료
+
+                // 로컬 백업 최신화
+                localStorage.setItem('woojin_wallet_backup', JSON.stringify({
+                    coins: state.coins,
+                    matched: state.totalMatchedCount,
+                    gifts: state.giftCount
+                }));
                 
                 updateUI(false); 
             }
         } catch (e) {
-            console.log("클라우드 로딩 실패: 로컬 데이터를 보존합니다.");
+            console.log("클라우드 연결 불안정: 기기 백업 데이터를 유지합니다.");
         } 
     }
 
-    async function syncToCloud() { try { if (state.totalMatchedCount >= state.maxGauge) { state.giftCount += 1; state.coins += 500; state.totalMatchedCount = 0; document.getElementById('giftCount').innerText = state.giftCount; document.getElementById('gaugeFill').style.width = '0%'; animateCoinIncrease(500); playSound('master'); confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); } await fetch(finalScriptUrl, { method: 'POST', body: JSON.stringify({ coins: state.coins, matched: state.totalMatchedCount, gifts: state.giftCount }) }); } catch (e) {} }
-    function updateUI(send = true) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); document.getElementById('giftCount').innerText = state.giftCount; const progress = (state.totalMatchedCount / state.maxGauge) * 100; document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; if(send) syncToCloud(); }
+    // 🛡️ [안전장치 3] 빈 값 덮어쓰기 방지 밸브 및 로컬 실시간 저장
+    async function syncToCloud() { 
+        // 1. 로컬 기기 백업은 무조건 즉시 실행
+        localStorage.setItem('woojin_wallet_backup', JSON.stringify({
+            coins: state.coins,
+            matched: state.totalMatchedCount,
+            gifts: state.giftCount
+        }));
+
+        // 2. 클라우드에서 아직 데이터를 못 읽어왔는데 0점인 상태라면 구글 시트에 덮어쓰지 않음
+        if (!state.isLoadedFromCloud && state.coins === 0 && state.giftCount === 0) {
+            return;
+        }
+
+        try { 
+            if (state.totalMatchedCount >= state.maxGauge) { 
+                state.giftCount += 1; 
+                state.coins += 500; 
+                state.totalMatchedCount = 0; 
+                document.getElementById('giftCount').innerText = state.giftCount; 
+                document.getElementById('gaugeFill').style.width = '0%'; 
+                animateCoinIncrease(500); 
+                playSound('master'); 
+                confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
+                showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); 
+            } 
+            await fetch(finalScriptUrl, { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    coins: state.coins, 
+                    matched: state.totalMatchedCount, 
+                    gifts: state.giftCount 
+                }) 
+            }); 
+        } catch (e) {
+            console.log("네트워크 오류: 서버 전송 실패(기기에는 안전하게 보관됨)");
+        } 
+    }
+
+    function updateUI(send = true) { 
+        document.getElementById('coinCount').innerText = state.coins.toLocaleString(); 
+        document.getElementById('giftCount').innerText = state.giftCount; 
+        const progress = (state.totalMatchedCount / state.maxGauge) * 100; 
+        document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; 
+        if(send) syncToCloud(); 
+    }
+
     function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
-    function showToast(message, type = 'info') { const popup = document.getElementById('resetPopup'); const text = document.getElementById('popupText'); const btnArea = document.getElementById('popupBtnArea'); if (popup.classList.contains('show') && (type === 'success' || type === 'info')) { text.innerText += "\n\n" + message; } else { text.innerText = message; } if (type === 'success' || type === 'info') { btnArea.style.display = 'none'; popup.classList.toggle('success-mode', type === 'success'); popup.classList.add('show'); clearTimeout(window.autoCloseTimer); window.autoCloseTimer = setTimeout(() => closeResetPopup(), 7000); } else { btnArea.style.display = 'flex'; popup.classList.remove('success-mode'); popup.classList.add('show'); } }
+    
+    function showToast(message, type = 'info') { 
+        const popup = document.getElementById('resetPopup'); 
+        const text = document.getElementById('popupText'); 
+        const btnArea = document.getElementById('popupBtnArea'); 
+        if (popup.classList.contains('show') && (type === 'success' || type === 'info')) { 
+            text.innerText += "\n\n" + message; 
+        } else { 
+            text.innerText = message; 
+        } 
+        if (type === 'success' || type === 'info') { 
+            btnArea.style.display = 'none'; 
+            popup.classList.toggle('success-mode', type === 'success'); 
+            popup.classList.add('show'); 
+            clearTimeout(window.autoCloseTimer); 
+            window.autoCloseTimer = setTimeout(() => closeResetPopup(), 7000); 
+        } else { 
+            btnArea.style.display = 'flex'; 
+            popup.classList.remove('success-mode'); 
+            popup.classList.add('show'); 
+        } 
+    }
+
     function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); }
-    function openResetPopup(e, title, type) { if(e) { e.preventDefault(); e.stopPropagation(); } const modeName = (type === 'study' ? '학습' : '복습'); const cleanName = title.trim(); showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); document.getElementById('btnOk').onclick = () => { const sKey = cleanName + "_study", rKey = cleanName + "_review"; if (type === 'study') { delete doneDB[sKey]; delete doneDB[sKey+"_score"]; delete perfectDB[sKey]; delete lastCountsDB[cleanName]; } else { delete doneDB[rKey]; delete doneDB[rKey+"_score"]; delete wrongDB[cleanName]; delete perfectDB[rKey]; delete tryDB[cleanName]; } localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); closeResetPopup(); renderMenu(); }; }
+    
+    function openResetPopup(e, title, type) { 
+        if(e) { e.preventDefault(); e.stopPropagation(); } 
+        const modeName = (type === 'study' ? '학습' : '복습'); 
+        const cleanName = title.trim(); 
+        showToast(`⚠️ ${cleanName}의\n${modeName} 기록을 지울까요?`, 'confirm'); 
+        document.getElementById('btnOk').onclick = () => { 
+            const sKey = cleanName + "_study", rKey = cleanName + "_review"; 
+            if (type === 'study') { 
+                delete doneDB[sKey]; 
+                delete doneDB[sKey+"_score"]; 
+                delete perfectDB[sKey]; 
+                delete lastCountsDB[cleanName]; 
+            } else { 
+                delete doneDB[rKey]; 
+                delete doneDB[rKey+"_score"]; 
+                delete wrongDB[cleanName]; 
+                delete perfectDB[rKey]; 
+                delete tryDB[cleanName]; 
+            } 
+            localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); 
+            localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
+            localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); 
+            localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); 
+            closeResetPopup(); 
+            renderMenu(); 
+        }; 
+    }
+
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
-    async function fetchSheetData() { await syncFromCloud(); try { const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); const text = await res.text(); const rows = parseCSV(text).slice(1); gameData = rows.map(row => { if (!row[0] || !row[2]) return null; const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; }).filter(d => d); renderMenu(); 
-                                                                 
-                                                                 
-                                                                 // 🟢 [추가할 코드 3] 이전 판 탈주 감지: 깃발이 있다면 게이지 100칸 차감
+    
+    async function fetchSheetData() { 
+        await syncFromCloud(); 
+        try { 
+            const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); 
+            const text = await res.text(); 
+            const rows = parseCSV(text).slice(1); 
+            gameData = rows.map(row => { 
+                if (!row[0] || !row[2]) return null; 
+                const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; 
+                const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); 
+                return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; 
+            }).filter(d => d); 
+            renderMenu(); 
+
+            // 🟢 탈주 깃발 감지: 게이지 30칸 차감 및 버튼 없는 토스트 팝업('info') 띄우기
             const runaway = JSON.parse(localStorage.getItem('woojin_study_playing'));
             if (runaway && runaway.active) {
                 localStorage.removeItem('woojin_study_playing');
@@ -193,13 +320,11 @@
                     showToast(`학습 도중에 나가서\n⚡ 게이지 ${penalty}칸이 사라졌어요! 😢\n우진아, 틀려도 끝까지 풀면 괜찮아!`, 'info');
                 }, 600);
             }
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 
-                                                                 } catch (e) { alert("데이터 로딩 실패!"); } }
+
+        } catch (e) { 
+            alert("데이터 로딩 실패!"); 
+        } 
+    }
 
     function smartSort(array, modePrefix) {
         const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -213,17 +338,14 @@
             const cleanA = a.title.trim(); const cleanB = b.title.trim();
             const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
 
-            // 🟢 0순위: 오늘 완료된 과목(잠김)은 뒤로 보냄
+            // 0순위: 오늘 완료된 과목(잠김)은 뒤로 보냄
             const maxLimit = (modePrefix === "_review" ? 2 : 1);
             const isLockedA = (dailyLimitDB.counts[nameA] || 0) >= maxLimit;
             const isLockedB = (dailyLimitDB.counts[nameB] || 0) >= maxLimit;
 
-            if (!isLockedA && isLockedB) return -1; // A만 활성이면 A가 앞
-            if (isLockedA && !isLockedB) return 1;  // B만 활성이면 B가 앞
-            // 둘 다 활성이거나 둘 다 비활성이면 아래 기존 스마트 정렬 로직을 그대로 수행
+            if (!isLockedA && isLockedB) return -1;
+            if (isLockedA && !isLockedB) return 1;
 
-
-            
             const dateA = doneDB[nameA] || ""; const dateB = doneDB[nameB] || "";
             const scoreA = doneDB[nameA + "_score"]; const scoreB = doneDB[nameB + "_score"];
             const diffA = getDaysDiff(dateA); const diffB = getDaysDiff(dateB);
@@ -255,13 +377,12 @@
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
-        // 📖 학습 모드: 뱃지 로직 업데이트 (조건 4, 6, 7 적용)
+        // 📖 학습 모드
         smartSort([...gameData], "_study").forEach((mode, idx) => { 
             const cleanName = mode.title.trim(); const sKey = cleanName + "_study";
             const isLocked = (dailyLimitDB.counts[sKey] || 0) >= 1; 
             const sScore = doneDB[sKey + "_score"];
             
-            // 💡 NEW 뱃지 조건: 로컬 저장값이 undefined가 아니고 && 1 이상이면서 && 시트 개수와 다를 때만
             const currentItemCount = mode.items.length;
             const lastRecordedCount = lastCountsDB[cleanName]; 
             const hasUpdate = (
@@ -284,9 +405,9 @@
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 if (idx > 0) { 
-        showToast("첫 번째 과목부터 먼저 완료해야 해요! ☝️", 'info'); 
-        return; 
-    }
+                    showToast("첫 번째 과목부터 먼저 완료해야 해요! ☝️", 'info'); 
+                    return; 
+                }
                 state.isPerfect = true; currentActiveTitle = cleanName; 
                 if (!bgm.src) { setRandomBGM(); }
                 if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); }
@@ -296,7 +417,7 @@
             studyGrid.appendChild(d); 
         });
 
-        // 🔄 복습 모드: 원본 코드 유지 (조건 8, 9 적용)
+        // 🔄 복습 모드
         smartSort([...gameData], "_review").forEach((mode) => { 
             const cleanName = mode.title.trim(); const rKey = cleanName + "_review";
             const rItems = wrongDB[cleanName] || [], isLocked = (dailyLimitDB.counts[rKey] || 0) >= 2; 
@@ -305,7 +426,6 @@
             r.style.background = isLocked ? "#94a3b8" : "#475569"; 
             const perfectCount = perfectDB[rKey] || 0;
             
-            // 💡 원본 로직 그대로 유지
             r.innerHTML = `
                 <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
                 <div class="icon-area">${mode.icon}</div>
@@ -318,21 +438,213 @@
             `; 
             r.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
-                state.isPerfect = true; currentActiveTitle = cleanName; if (!bgm.src) { setRandomBGM(); } if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); } sessionStats = { trials: 0, hits: 0 }; if(rItems.length > 0) startGame(cleanName, rItems, true); else showToast("복습할 게 없어요! ✨", 'success'); }; reviewGrid.appendChild(r); }); } function startGame(title, items, isReview) { window.isReviewMode = isReview; window.currentMatchCount = items.length; document.getElementById('mainPage').style.display = 'none'; document.getElementById('gamePage').style.display = 'flex'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; 
-                                                                                                                                                                                                                                                                                                                                                                                                                                              // 🟢 [추가할 코드 1] 학습 모드 시작 시 탈주 감지용 깃발 등록
-    if (!isReview) {
-        localStorage.setItem('woojin_study_playing', JSON.stringify({ active: true, title: title }));
-    } 
-                                                                                                                                                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                                                                                                                                                                                                                                                               const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; let pool = [...sortedItems]; while(pool.length > 0) { const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; for (const item of pool) { if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { page.push(item); pageTerms.add(item.t); pageDefs.add(item.d); } else { nextPool.push(item); } } if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); distributed.push(...page); pool = nextPool; } allCurrentItems = distributed; currentPage = 0; renderPage(title); window.scrollTo(0, 0); } function renderPage(title) { const totalPages = Math.ceil(allCurrentItems.length / 10); document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); tCol.innerHTML = ''; dCol.innerHTML = ''; [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card term-card'; c.innerText = item.t; tCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'term', c); }); [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { const c = document.createElement('div'); c.className = 'card'; c.innerText = item.d; dCol.appendChild(c); applySmartFontSize(c); c.onclick = () => selectCard(item, 'def', c); }); } function selectCard(item, type, el) { if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return; playSound('click'); if(type === 'term') { if(state.selectedTerm && state.selectedTerm.el === el) { el.classList.remove('selected'); state.selectedTerm = null; return; } document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedTerm = { item, el }; } else { if(state.selectedDef && state.selectedDef.el === el) { el.classList.remove('selected'); state.selectedDef = null; return; } document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); state.selectedDef = { item, el }; } el.classList.add('selected'); if(state.selectedTerm && state.selectedDef) { dailyLog.trials++; sessionStats.trials++; const t = state.selectedTerm, d = state.selectedDef; if(t.item.t === d.item.t || t.item.d === d.item.d) { dailyLog.hits++; sessionStats.hits++; playSound('correct'); t.el.className = 'card matched'; d.el.className = 'card matched'; state.coins++; state.totalMatchedCount++; updateUI(); state.selectedTerm = state.selectedDef = null; if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) { if((currentPage + 1) * 10 < allCurrentItems.length) { currentPage++; setTimeout(() => renderPage(currentActiveTitle), 500); } else { const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`; const cleanName = currentActiveTitle; const key = cleanName + (window.isReviewMode ? "_review" : "_study"); const finalScore = Math.round((sessionStats.hits / sessionStats.trials) * 100); doneDB[key + "_score"] = finalScore; if(window.isReviewMode) { tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); } doneDB[key] = dateStr; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            // 🟢 [추가할 코드 2] 정상 완주했으므로 깃발 삭제!
-                    if (!window.isReviewMode) {
-                        localStorage.removeItem('woojin_study_playing');
-                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if(!window.isReviewMode) { lastCountsDB[cleanName] = window.currentMatchCount || 0; localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); } if(state.isPerfect) { if(window.isReviewMode) { perfectDB[key] = (perfectDB[key] || 0) + 1; if(perfectDB[key] >= 5) { state.coins += 100; animateCoinIncrease(100); showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 100코인 획득! 🪙`, "success"); delete wrongDB[cleanName]; delete tryDB[cleanName]; perfectDB[key] = 0; localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); } else { showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)`, "success"); } } else { state.coins += 100; animateCoinIncrease(100); showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); } } else { showToast(`👍 [${cleanName}] 완료!`, "info"); } localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); setTimeout(() => goToMain(), 2500); } } } else { playSound('wrong'); t.el.classList.add('wrong-impact'); d.el.classList.add('wrong-impact'); state.isPerfect = false; if(!window.isReviewMode) { const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim(); if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; const beforeCount = wrongDB[activeTitle].length; if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { wrongDB[activeTitle].push(t.item); } if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { wrongDB[activeTitle].push(d.item); } const afterCount = wrongDB[activeTitle].length; if (beforeCount < afterCount) { delete doneDB[activeTitle + "_review_score"]; localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); } localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); } setTimeout(() => { t.el.classList.remove('selected', 'wrong-impact'); d.el.classList.remove('selected', 'wrong-impact'); state.selectedTerm = state.selectedDef = null; }, 400); } updateStatUI(); } } function goToMain() { document.getElementById('mainPage').style.display = 'block'; document.getElementById('gamePage').style.display = 'none'; document.getElementById('topHomeBtn').style.visibility = 'hidden'; renderMenu(); window.scrollTo(0, 0); } function closeResetPopup() { document.getElementById('resetPopup').classList.remove('show'); } updateStatUI(); fetchSheetData(); </script> </body> </html>
+                state.isPerfect = true; currentActiveTitle = cleanName; 
+                if (!bgm.src) { setRandomBGM(); } 
+                if (bgm.paused && document.getElementById('musicIcon').innerText === '🎵') { bgm.play().catch(e => {}); } 
+                sessionStats = { trials: 0, hits: 0 }; 
+                if(rItems.length > 0) startGame(cleanName, rItems, true); 
+                else showToast("복습할 게 없어요! ✨", 'success'); 
+            }; 
+            reviewGrid.appendChild(r); 
+        }); 
+    }
+
+    function startGame(title, items, isReview) { 
+        window.isReviewMode = isReview; 
+        window.currentMatchCount = items.length; 
+        document.getElementById('mainPage').style.display = 'none'; 
+        document.getElementById('gamePage').style.display = 'flex'; 
+        document.getElementById('topHomeBtn').style.visibility = 'hidden'; 
+
+        // 🟢 학습 모드 시작 시 탈주 감지 깃발 등록
+        if (!isReview) {
+            localStorage.setItem('woojin_study_playing', JSON.stringify({ active: true, title: title }));
+        }
+
+        const sortedItems = [...items].sort(() => Math.random() - 0.5), distributed = []; 
+        let pool = [...sortedItems]; 
+        while(pool.length > 0) { 
+            const page = [], pageTerms = new Set(), pageDefs = new Set(), nextPool = []; 
+            for (const item of pool) { 
+                if (page.length < 10 && !pageTerms.has(item.t) && !pageDefs.has(item.d)) { 
+                    page.push(item); 
+                    pageTerms.add(item.t); 
+                    pageDefs.add(item.d); 
+                } else { 
+                    nextPool.push(item); 
+                } 
+            } 
+            if (page.length === 0 && nextPool.length > 0) page.push(nextPool.shift()); 
+            distributed.push(...page); 
+            pool = nextPool; 
+        } 
+        allCurrentItems = distributed; 
+        currentPage = 0; 
+        renderPage(title); 
+        window.scrollTo(0, 0); 
+    }
+
+    function renderPage(title) { 
+        const totalPages = Math.ceil(allCurrentItems.length / 10); 
+        document.getElementById('gameTitle').innerText = (window.isReviewMode ? "🔄 " : "") + title; 
+        document.getElementById('pageIndicator').innerText = `${currentPage + 1} / ${totalPages}`; 
+        pagePairs = allCurrentItems.slice(currentPage * 10, (currentPage + 1) * 10); 
+        const tCol = document.getElementById('termsColumn'), dCol = document.getElementById('definitionsColumn'); 
+        tCol.innerHTML = ''; 
+        dCol.innerHTML = ''; 
+        [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { 
+            const c = document.createElement('div'); 
+            c.className = 'card term-card'; 
+            c.innerText = item.t; 
+            tCol.appendChild(c); 
+            applySmartFontSize(c); 
+            c.onclick = () => selectCard(item, 'term', c); 
+        }); 
+        [...pagePairs].sort(() => Math.random() - 0.5).forEach(item => { 
+            const c = document.createElement('div'); 
+            c.className = 'card'; 
+            c.innerText = item.d; 
+            dCol.appendChild(c); 
+            applySmartFontSize(c); 
+            c.onclick = () => selectCard(item, 'def', c); 
+        }); 
+    }
+
+    function selectCard(item, type, el) { 
+        if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return; 
+        playSound('click'); 
+        if(type === 'term') { 
+            if(state.selectedTerm && state.selectedTerm.el === el) { 
+                el.classList.remove('selected'); 
+                state.selectedTerm = null; 
+                return; 
+            } 
+            document.querySelectorAll('#termsColumn .card').forEach(c => c.classList.remove('selected')); 
+            state.selectedTerm = { item, el }; 
+        } else { 
+            if(state.selectedDef && state.selectedDef.el === el) { 
+                el.classList.remove('selected'); 
+                state.selectedDef = null; 
+                return; 
+            } 
+            document.querySelectorAll('#definitionsColumn .card').forEach(c => c.classList.remove('selected')); 
+            state.selectedDef = { item, el }; 
+        } 
+        el.classList.add('selected'); 
+        
+        if(state.selectedTerm && state.selectedDef) { 
+            dailyLog.trials++; 
+            sessionStats.trials++; 
+            const t = state.selectedTerm, d = state.selectedDef; 
+            if(t.item.t === d.item.t || t.item.d === d.item.d) { 
+                dailyLog.hits++; 
+                sessionStats.hits++; 
+                playSound('correct'); 
+                t.el.className = 'card matched'; 
+                d.el.className = 'card matched'; 
+                state.coins++; 
+                state.totalMatchedCount++; 
+                updateUI(); 
+                state.selectedTerm = state.selectedDef = null; 
+                
+                if(document.querySelectorAll('.matched').length === (pagePairs.length * 2)) { 
+                    if((currentPage + 1) * 10 < allCurrentItems.length) { 
+                        currentPage++; 
+                        setTimeout(() => renderPage(currentActiveTitle), 500); 
+                    } else { 
+                        const now = new Date(), dateStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}`; 
+                        const cleanName = currentActiveTitle; 
+                        const key = cleanName + (window.isReviewMode ? "_review" : "_study"); 
+                        const finalScore = Math.round((sessionStats.hits / sessionStats.trials) * 100); 
+                        doneDB[key + "_score"] = finalScore; 
+                        if(window.isReviewMode) { 
+                            tryDB[cleanName] = (tryDB[cleanName] || 0) + 1; 
+                            localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); 
+                        } 
+                        doneDB[key] = dateStr; 
+                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); 
+                        dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; 
+                        localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
+
+                        // 🟢 정상 완주 시 탈주 깃발 삭제
+                        if (!window.isReviewMode) {
+                            localStorage.removeItem('woojin_study_playing');
+                        }
+
+                        if(!window.isReviewMode) { 
+                            lastCountsDB[cleanName] = window.currentMatchCount || 0; 
+                            localStorage.setItem('woojin_last_counts_v1', JSON.stringify(lastCountsDB)); 
+                        } 
+                        
+                        if(state.isPerfect) { 
+                            if(window.isReviewMode) { 
+                                perfectDB[key] = (perfectDB[key] || 0) + 1; 
+                                if(perfectDB[key] >= 5) { 
+                                    state.coins += 100; 
+                                    animateCoinIncrease(100); 
+                                    showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 100코인 획득! 🪙`, "success"); 
+                                    delete wrongDB[cleanName]; 
+                                    delete tryDB[cleanName]; 
+                                    perfectDB[key] = 0; 
+                                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
+                                    localStorage.setItem('woojin_try_v1', JSON.stringify(tryDB)); 
+                                } else { 
+                                    showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)`, "success"); 
+                                } 
+                            } else { 
+                                state.coins += 100; 
+                                animateCoinIncrease(100); 
+                                showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); 
+                            } 
+                        } else { 
+                            showToast(`👍 [${cleanName}] 완료!`, "info"); 
+                        } 
+                        localStorage.setItem('woojin_perfect_v1', JSON.stringify(perfectDB)); 
+                        setTimeout(() => goToMain(), 2500); 
+                    } 
+                } 
+            } else { 
+                playSound('wrong'); 
+                t.el.classList.add('wrong-impact'); 
+                d.el.classList.add('wrong-impact'); 
+                state.isPerfect = false; 
+                if(!window.isReviewMode) { 
+                    const activeTitle = document.getElementById('gameTitle').innerText.replace("🔄 ", "").trim(); 
+                    if(!wrongDB[activeTitle]) wrongDB[activeTitle] = []; 
+                    const beforeCount = wrongDB[activeTitle].length; 
+                    if(!wrongDB[activeTitle].some(w => w.t === t.item.t)) { 
+                        wrongDB[activeTitle].push(t.item); 
+                    } 
+                    if(!wrongDB[activeTitle].some(w => w.t === d.item.t)) { 
+                        wrongDB[activeTitle].push(d.item); 
+                    } 
+                    const afterCount = wrongDB[activeTitle].length; 
+                    if (beforeCount < afterCount) { 
+                        delete doneDB[activeTitle + "_review_score"]; 
+                        localStorage.setItem('woojin_done_v1', JSON.stringify(doneDB)); 
+                    } 
+                    localStorage.setItem('woojin_wrong_v3', JSON.stringify(wrongDB)); 
+                } 
+                setTimeout(() => { 
+                    t.el.classList.remove('selected', 'wrong-impact'); 
+                    d.el.classList.remove('selected', 'wrong-impact'); 
+                    state.selectedTerm = state.selectedDef = null; 
+                }, 400); 
+            } 
+            updateStatUI(); 
+        } 
+    }
+
+    function goToMain() { 
+        document.getElementById('mainPage').style.display = 'block'; 
+        document.getElementById('gamePage').style.display = 'none'; 
+        document.getElementById('topHomeBtn').style.visibility = 'hidden'; 
+        renderMenu(); 
+        window.scrollTo(0, 0); 
+    }
+
+    updateStatUI(); 
+    fetchSheetData(); 
+</script> 
+</body> 
+</html>

@@ -108,7 +108,7 @@
         "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3","https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3","https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3","https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3","https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3","https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3","https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3","https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3","https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3","https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3","https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3","https://woojin-dad.github.io/matching-game/bgm/crystal.mp3","https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3","https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3","https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3","https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3","https://woojin-dad.github.io/matching-game/bgm/girasol.mp3","https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3","https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3","https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3","https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3","https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3","https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3","https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3","https://woojin-dad.github.io/matching-game/bgm/payday.mp3","https://woojin-dad.github.io/matching-game/bgm/payday2.mp3","https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3","https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3","https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3","https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3","https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3","https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3","https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
     ];
 
-    // 🛡️ [안전장치 1] 기기 로컬 백업을 기본값으로 불러와 인터넷 단절 시 0점 초기화 원천 차단
+    // 🛡️ [금고 1] 기기 로컬 백업 금고('woojin_wallet_backup')를 기본 상태로 로드
     let savedWallet = JSON.parse(localStorage.getItem('woojin_wallet_backup')) || { coins: 0, matched: 0, gifts: 0 };
     let state = { 
         coins: savedWallet.coins || 0, 
@@ -117,8 +117,7 @@
         maxGauge: 500, 
         selectedTerm: null, 
         selectedDef: null, 
-        isPerfect: true,
-        isLoadedFromCloud: false // 🟢 클라우드 데이터 정상 로딩 여부 확인 깃발
+        isPerfect: true 
     };
 
     let gameData = [], currentPage = 0, allCurrentItems = [], pagePairs = [];
@@ -163,48 +162,57 @@
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     
-    // 🛡️ [안전장치 2] 클라우드 로드 성공 시에만 갱신 및 로컬 백업 자동 연동
+    // 🛡️ [서버 수신] 깃발 검사 및 오프라인 플레이 데이터 역전송 / 부모 수정 시트 동기화
     async function syncFromCloud() { 
+        const isPending = localStorage.getItem('woojin_wallet_pending') === 'true';
+
+        // 🟢 Case A: 오프라인 미전송 깃발이 서 있는 경우
+        // 구글 시트 구버전 데이터로 덮어쓰지 않고, 기기의 최신 점수를 구글 시트로 역전송!
+        if (isPending) {
+            console.log("미전송 오프라인 플레이 기록 감지: 시트에 최신 점수 역전송 실행");
+            updateUI(false); 
+            await syncToCloud(); // 구글 시트로 역전송
+            return;
+        }
+
+        // 🟢 Case B: 깃발이 없는 경우 (정상 온라인 상태 또는 부모님이 시트를 직접 수정한 경우)
+        // 구글 시트의 값을 100% 최우선 진실로 채택하여 로컬 상태 및 금고를 동기화
         try { 
             const response = await fetch(finalScriptUrl); 
-            const data = await response.json(); 
-            
-            if (data.coins !== undefined) {
-                state.coins = Number(data.coins) || 0;
-                state.giftCount = Number(data.gifts) || 0;
-                state.totalMatchedCount = Number(data.matched) || 0;
-                state.maxGauge = Number(data.maxGauge) || 500; 
-                state.isLoadedFromCloud = true; // 클라우드 인증 완료
+            if (response.ok) {
+                const data = await response.json(); 
+                if (data.coins !== undefined) {
+                    state.coins = Number(data.coins) || 0;
+                    state.giftCount = Number(data.gifts) || 0;
+                    state.totalMatchedCount = Number(data.matched) || 0;
+                    state.maxGauge = Number(data.maxGauge) || 500; 
 
-                // 로컬 백업 최신화
-                localStorage.setItem('woojin_wallet_backup', JSON.stringify({
-                    coins: state.coins,
-                    matched: state.totalMatchedCount,
-                    gifts: state.giftCount
-                }));
-                
-                updateUI(false); 
+                    // 로컬 금고 백업 최신 동기화
+                    localStorage.setItem('woojin_wallet_backup', JSON.stringify({
+                        coins: state.coins,
+                        matched: state.totalMatchedCount,
+                        gifts: state.giftCount
+                    }));
+                    
+                    updateUI(false); 
+                }
             }
         } catch (e) {
-            console.log("클라우드 연결 불안정: 기기 백업 데이터를 유지합니다.");
+            console.log("클라우드 GET 지연/실패: 기기 금고 데이터를 안전하게 유지합니다.");
         } 
     }
 
-    // 🛡️ [안전장치 3] 빈 값 덮어쓰기 방지 밸브 및 로컬 실시간 저장
+    // 🛡️ [서버 전송] 기기 금고 무조건 저장 + 성공 시 깃발 해제 / 실패 시 미전송 깃발 등록
     async function syncToCloud() { 
-        // 1. 로컬 기기 백업은 무조건 즉시 실행
+        // 1. 점수 변동 즉시 기기 로컬 금고('woojin_wallet_backup')에 무조건 저장
         localStorage.setItem('woojin_wallet_backup', JSON.stringify({
             coins: state.coins,
             matched: state.totalMatchedCount,
             gifts: state.giftCount
         }));
 
-        // 2. 클라우드에서 아직 데이터를 못 읽어왔는데 0점인 상태라면 구글 시트에 덮어쓰지 않음
-        if (!state.isLoadedFromCloud && state.coins === 0 && state.giftCount === 0) {
-            return;
-        }
-
         try { 
+            // 500칸 달성 시 선물 환전 로직
             if (state.totalMatchedCount >= state.maxGauge) { 
                 state.giftCount += 1; 
                 state.coins += 500; 
@@ -215,8 +223,17 @@
                 playSound('master'); 
                 confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
                 showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); 
+                
+                // 환전된 상태도 즉시 금고 갱신
+                localStorage.setItem('woojin_wallet_backup', JSON.stringify({
+                    coins: state.coins,
+                    matched: state.totalMatchedCount,
+                    gifts: state.giftCount
+                }));
             } 
-            await fetch(finalScriptUrl, { 
+
+            // 구글 시트로 POST 전송
+            const res = await fetch(finalScriptUrl, { 
                 method: 'POST', 
                 body: JSON.stringify({ 
                     coins: state.coins, 
@@ -224,8 +241,18 @@
                     gifts: state.giftCount 
                 }) 
             }); 
+
+            if (res.ok) {
+                // 🟢 전송 성공: 미전송 깃발 해제
+                localStorage.removeItem('woojin_wallet_pending');
+            } else {
+                // 🔴 전송 실패(HTTP 오류): 미전송 깃발 설정
+                localStorage.setItem('woojin_wallet_pending', 'true');
+            }
         } catch (e) {
-            console.log("네트워크 오류: 서버 전송 실패(기기에는 안전하게 보관됨)");
+            // 🔴 네트워크 단절/오프라인 에러: 미전송 깃발 설정
+            console.log("네트워크 단절: 오프라인 미전송 깃발(woojin_wallet_pending) 활성화");
+            localStorage.setItem('woojin_wallet_pending', 'true');
         } 
     }
 
@@ -308,7 +335,7 @@
             }).filter(d => d); 
             renderMenu(); 
 
-            // 🟢 탈주 깃발 감지: 게이지 30칸 차감 및 버튼 없는 토스트 팝업('info') 띄우기
+            // 🟢 탈주 깃발 감지: 게이지 30칸 차감 및 버튼 없는 토스트 팝업('info')
             const runaway = JSON.parse(localStorage.getItem('woojin_study_playing'));
             if (runaway && runaway.active) {
                 localStorage.removeItem('woojin_study_playing');

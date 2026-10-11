@@ -32,7 +32,6 @@
         
         .info-badge { font-size: 0.95rem; font-weight: 700; background: rgba(0,0,0,0.4); color: #FEE500; padding: 4px 8px; border-radius: 10px; margin-top: 4px; width: 95%; white-space: nowrap; overflow: hidden; }
 
-        /* 🧡 학습용 NEW 뱃지 스타일 */
         .update-badge { 
             position: absolute; top: -10px; left: -10px; background: #FF5722; color: white; 
             font-size: 0.8rem; font-weight: bold; padding: 3px 12px; border-radius: 20px; 
@@ -42,6 +41,8 @@
         
         .delete-btn { position: absolute; top: -8px; right: -8px; width: 28px; height: 28px; background: #EF4444; color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; border: 2.5px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); z-index: 50; }
         body.admin-mode .delete-btn { display: flex !important; }
+        body.admin-mode #adminEditBtn { display: inline-block !important; }
+
         #gamePage { flex: 1; display: none; flex-direction: column; justify-content: flex-start; padding-bottom: 5px; }
         .game-header { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 8px; flex-shrink: 0; }
         #gameTitle { font-size: 1.1rem; font-weight: 900; color: #3C1E1E; }
@@ -62,13 +63,47 @@
         .btn-confirm { background: #EF4444; color: white; }
         .btn-cancel { background: #E5E7EB; color: #4B5563; }
         #rewardModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; text-align: center; border: 6px solid #4ADE80; width: 85%; max-width: 400px; animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+        /* 🛠️ 관리자 수치 수정 모달 */
+        #adminModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.35); z-index: 3000; width: 90%; max-width: 340px; border: 4px solid #3C1E1E; }
+        #adminModal h3 { font-size: 1.3rem; font-weight: 900; color: #3C1E1E; margin-bottom: 16px; text-align: center; }
+        .admin-input-group { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .admin-input-group label { font-weight: 800; color: #374151; font-size: 0.95rem; }
+        .admin-input-group input { width: 120px; padding: 6px 10px; border: 2px solid #d1d5db; border-radius: 8px; font-weight: 900; text-align: right; font-size: 1rem; color: #3C1E1E; }
     </style>
 </head>
 <body>
 <div id="resetPopup"><p id="popupText"></p><div class="popup-btns" id="popupBtnArea"><button class="btn-confirm" id="btnOk">확인</button><button class="btn-cancel" onclick="closeResetPopup()">취소</button></div></div>
 <div id="rewardModal"><h2 id="rewardTitle">🎉 축하합니다! 🎉</h2><p id="rewardModalText"></p><button id="rewardBtn" onclick="closeRewardModal()" style="background: #4ADE80; color: white; padding: 10px 40px; border-radius: 50px; font-weight: 900; font-size: 1.1rem; box-shadow: 0 4px 0 #16A34A;">확인</button></div>
+
+<!-- 🛠️ 관리자 수치 직접 수정 창 -->
+<div id="adminModal">
+    <h3>⚙️ 보상 데이터 직접 수정</h3>
+    <div class="admin-input-group">
+        <label>🪙 코인</label>
+        <input type="number" id="editCoins" min="0">
+    </div>
+    <div class="admin-input-group">
+        <label>⚡ 현재 게이지</label>
+        <input type="number" id="editMatched" min="0">
+    </div>
+    <div class="admin-input-group">
+        <label>🎁 선물 수</label>
+        <input type="number" id="editGifts" min="0">
+    </div>
+    <div class="admin-input-group">
+        <label>🎯 최대 게이지</label>
+        <input type="number" id="editMaxGauge" min="10" step="50">
+    </div>
+    <div class="popup-btns mt-4">
+        <button class="btn-confirm" onclick="saveAdminValues()" style="background:#16A34A;">저장</button>
+        <button class="btn-cancel" onclick="closeAdminModal()">닫기</button>
+    </div>
+</div>
+
 <div class="container">
-    <audio id="bgm"></audio> <div id="statusBar">
+    <audio id="bgm"></audio> 
+    <div id="statusBar">
         <div class="status-left">
             <div class="coin-box">🪙 <span id="coinCount">...</span></div>
             <div id="accuracyBox" style="font-weight:900; color:#3C1E1E; font-size:1rem; background:#fff; padding:2px 8px; border-radius:10px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.1); margin-left:2px;">🎯 <span id="statText">0/0 (0%)</span></div>
@@ -78,7 +113,10 @@
         <div class="status-right"><span class="bolt-icon">⚡</span><div class="gauge-bg"><div id="gaugeFill"></div></div><div class="reward-box">🎁 <span id="giftCount">0</span></div></div>
     </div>
     <div id="mainPage">
-        <h1 class="text-center my-6 flex items-center justify-center gap-4"><span class="main-title" onclick="triggerAdminMode()">🧩 우진이의 매칭 게임<span id="adminMark" style="display:none; font-size:1rem; vertical-align:middle;"> 🛠️</span></span></h1>
+        <h1 class="text-center my-6 flex items-center justify-center gap-2">
+            <span class="main-title" onclick="triggerAdminMode()">🧩 우진이의 매칭 게임</span>
+            <button id="adminEditBtn" onclick="openAdminModal()" style="display:none; background:#3C1E1E; color:#FEE500; padding:4px 10px; border-radius:12px; font-weight:900; font-size:0.85rem; border:none; box-shadow:0 2px 0 #000;">🛠️ 수치 관리</button>
+        </h1>
         <div class="category-container mb-8"><div class="category-title text-blue-600 border-blue-600">🔄 복습</div><div id="reviewGrid" class="mode-grid"></div></div>
         <div class="category-container mb-8"><div class="category-title text-green-600 border-green-600">📖 학습</div><div id="studyGrid" class="mode-grid"></div></div>
     </div>
@@ -89,7 +127,7 @@
 </div>
 
 <script>
-    const finalScriptUrl = "https://script.google.com/macros/s/AKfycbxlPT7SuPsd70jPhYkj7hsB23PF7wCk9FqQBI2psOo1yDdBDKdmpmraflnGMOt1cpX-kA/exec";
+    // 단어 데이터만 읽어오는 스프레드시트 CSV URL
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
     const todayStr = new Date().toLocaleDateString();
@@ -108,13 +146,13 @@
         "https://woojin-dad.github.io/matching-game/bgm/about_that_oldie.mp3","https://woojin-dad.github.io/matching-game/bgm/after_school_jamboree.mp3","https://woojin-dad.github.io/matching-game/bgm/put_on_your_dancing_pants.mp3","https://woojin-dad.github.io/matching-game/bgm/arc_of_the_sun.mp3","https://woojin-dad.github.io/matching-game/bgm/blue_ribbons.mp3","https://woojin-dad.github.io/matching-game/bgm/broccoli_on_my_plate.mp3","https://woojin-dad.github.io/matching-game/bgm/bubinga.mp3","https://woojin-dad.github.io/matching-game/bgm/bunny_hop.mp3","https://woojin-dad.github.io/matching-game/bgm/city_blocks.mp3","https://woojin-dad.github.io/matching-game/bgm/claudio_the_worm.mp3","https://woojin-dad.github.io/matching-game/bgm/coffee_stains.mp3","https://woojin-dad.github.io/matching-game/bgm/crystal.mp3","https://woojin-dad.github.io/matching-game/bgm/ex_boxer.mp3","https://woojin-dad.github.io/matching-game/bgm/fantasyland.mp3","https://woojin-dad.github.io/matching-game/bgm/full_speed_ahead.mp3","https://woojin-dad.github.io/matching-game/bgm/get_outside.mp3","https://woojin-dad.github.io/matching-game/bgm/girasol.mp3","https://woojin-dad.github.io/matching-game/bgm/happy_mistake.mp3","https://woojin-dad.github.io/matching-game/bgm/how_about_it.mp3","https://woojin-dad.github.io/matching-game/bgm/if_i_had_a_chicken.mp3","https://woojin-dad.github.io/matching-game/bgm/jigsaw_puzzle.mp3","https://woojin-dad.github.io/matching-game/bgm/kazoom.mp3","https://woojin-dad.github.io/matching-game/bgm/lovable_clown_sit_com.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._sunny_face.mp3","https://woojin-dad.github.io/matching-game/bgm/mr._turtle.mp3","https://woojin-dad.github.io/matching-game/bgm/nimbus.mp3","https://woojin-dad.github.io/matching-game/bgm/payday.mp3","https://woojin-dad.github.io/matching-game/bgm/payday2.mp3","https://woojin-dad.github.io/matching-game/bgm/rainbow_forest.mp3","https://woojin-dad.github.io/matching-game/bgm/rainy_day_games.mp3","https://woojin-dad.github.io/matching-game/bgm/sand_castles.mp3","https://woojin-dad.github.io/matching-game/bgm/snack_time.mp3","https://woojin-dad.github.io/matching-game/bgm/splashing_around.mp3","https://woojin-dad.github.io/matching-game/bgm/upbeat.mp3","https://woojin-dad.github.io/matching-game/bgm/venice_beach.mp3"
     ];
 
-    // 🛡️ [금고 1] 기기 로컬 백업 금고('woojin_wallet_backup')를 기본 상태로 로드
-    let savedWallet = JSON.parse(localStorage.getItem('woojin_wallet_backup')) || { coins: 0, matched: 0, gifts: 0 };
+    // 🛡️ 기기 로컬 금고('woojin_wallet_local')에서 전적으로 관리 (오프라인 100% 보장)
+    let localWallet = JSON.parse(localStorage.getItem('woojin_wallet_local')) || { coins: 0, matched: 0, gifts: 0, maxGauge: 500 };
     let state = { 
-        coins: savedWallet.coins || 0, 
-        totalMatchedCount: savedWallet.matched || 0, 
-        giftCount: savedWallet.gifts || 0, 
-        maxGauge: 500, 
+        coins: Number(localWallet.coins) || 0, 
+        totalMatchedCount: Number(localWallet.matched) || 0, 
+        giftCount: Number(localWallet.gifts) || 0, 
+        maxGauge: Number(localWallet.maxGauge) || 500, 
         selectedTerm: null, 
         selectedDef: null, 
         isPerfect: true 
@@ -162,109 +200,71 @@
 
     function animateCoinIncrease(targetAmount) { let added = 0; const startValue = state.coins - targetAmount; const step = Math.ceil(targetAmount / 20); const timer = setInterval(() => { added += step; if (added >= targetAmount) { document.getElementById('coinCount').innerText = state.coins.toLocaleString(); clearInterval(timer); } else { document.getElementById('coinCount').innerText = (startValue + added).toLocaleString(); playSound('tick'); } }, 50); }
     
-    // 🛡️ [서버 수신] 깃발 검사 및 오프라인 플레이 데이터 역전송 / 부모 수정 시트 동기화
-    async function syncFromCloud() { 
-        const isPending = localStorage.getItem('woojin_wallet_pending') === 'true';
-
-        // 🟢 Case A: 오프라인 미전송 깃발이 서 있는 경우
-        // 구글 시트 구버전 데이터로 덮어쓰지 않고, 기기의 최신 점수를 구글 시트로 역전송!
-        if (isPending) {
-            console.log("미전송 오프라인 플레이 기록 감지: 시트에 최신 점수 역전송 실행");
-            updateUI(false); 
-            await syncToCloud(); // 구글 시트로 역전송
-            return;
-        }
-
-        // 🟢 Case B: 깃발이 없는 경우 (정상 온라인 상태 또는 부모님이 시트를 직접 수정한 경우)
-        // 구글 시트의 값을 100% 최우선 진실로 채택하여 로컬 상태 및 금고를 동기화
-        try { 
-            const response = await fetch(finalScriptUrl); 
-            if (response.ok) {
-                const data = await response.json(); 
-                if (data.coins !== undefined) {
-                    state.coins = Number(data.coins) || 0;
-                    state.giftCount = Number(data.gifts) || 0;
-                    state.totalMatchedCount = Number(data.matched) || 0;
-                    state.maxGauge = Number(data.maxGauge) || 500; 
-
-                    // 로컬 금고 백업 최신 동기화
-                    localStorage.setItem('woojin_wallet_backup', JSON.stringify({
-                        coins: state.coins,
-                        matched: state.totalMatchedCount,
-                        gifts: state.giftCount
-                    }));
-                    
-                    updateUI(false); 
-                }
-            }
-        } catch (e) {
-            console.log("클라우드 GET 지연/실패: 기기 금고 데이터를 안전하게 유지합니다.");
+    // 🛡️ 기기 내부 안전 저장 함수 (네트워크 불필요)
+    function saveWalletLocal() {
+        if (state.totalMatchedCount >= state.maxGauge) { 
+            state.giftCount += 1; 
+            state.coins += 500; 
+            state.totalMatchedCount = 0; 
+            document.getElementById('giftCount').innerText = state.giftCount; 
+            document.getElementById('gaugeFill').style.width = '0%'; 
+            animateCoinIncrease(500); 
+            playSound('master'); 
+            confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
+            showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); 
         } 
-    }
-
-    // 🛡️ [서버 전송] 기기 금고 무조건 저장 + 성공 시 깃발 해제 / 실패 시 미전송 깃발 등록
-    async function syncToCloud() { 
-        // 1. 점수 변동 즉시 기기 로컬 금고('woojin_wallet_backup')에 무조건 저장
-        localStorage.setItem('woojin_wallet_backup', JSON.stringify({
+        localStorage.setItem('woojin_wallet_local', JSON.stringify({
             coins: state.coins,
             matched: state.totalMatchedCount,
-            gifts: state.giftCount
+            gifts: state.giftCount,
+            maxGauge: state.maxGauge
         }));
-
-        try { 
-            // 500칸 달성 시 선물 환전 로직
-            if (state.totalMatchedCount >= state.maxGauge) { 
-                state.giftCount += 1; 
-                state.coins += 500; 
-                state.totalMatchedCount = 0; 
-                document.getElementById('giftCount').innerText = state.giftCount; 
-                document.getElementById('gaugeFill').style.width = '0%'; 
-                animateCoinIncrease(500); 
-                playSound('master'); 
-                confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
-                showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); 
-                
-                // 환전된 상태도 즉시 금고 갱신
-                localStorage.setItem('woojin_wallet_backup', JSON.stringify({
-                    coins: state.coins,
-                    matched: state.totalMatchedCount,
-                    gifts: state.giftCount
-                }));
-            } 
-
-            // 구글 시트로 POST 전송
-            const res = await fetch(finalScriptUrl, { 
-                method: 'POST', 
-                body: JSON.stringify({ 
-                    coins: state.coins, 
-                    matched: state.totalMatchedCount, 
-                    gifts: state.giftCount 
-                }) 
-            }); 
-
-            if (res.ok) {
-                // 🟢 전송 성공: 미전송 깃발 해제
-                localStorage.removeItem('woojin_wallet_pending');
-            } else {
-                // 🔴 전송 실패(HTTP 오류): 미전송 깃발 설정
-                localStorage.setItem('woojin_wallet_pending', 'true');
-            }
-        } catch (e) {
-            // 🔴 네트워크 단절/오프라인 에러: 미전송 깃발 설정
-            console.log("네트워크 단절: 오프라인 미전송 깃발(woojin_wallet_pending) 활성화");
-            localStorage.setItem('woojin_wallet_pending', 'true');
-        } 
     }
 
-    function updateUI(send = true) { 
+    function updateUI(save = true) { 
         document.getElementById('coinCount').innerText = state.coins.toLocaleString(); 
         document.getElementById('giftCount').innerText = state.giftCount; 
         const progress = (state.totalMatchedCount / state.maxGauge) * 100; 
         document.getElementById('gaugeFill').style.width = Math.min(progress, 100) + '%'; 
-        if(send) syncToCloud(); 
+        if(save) saveWalletLocal(); 
     }
 
-    function triggerAdminMode() { if (!window.clickCount) window.clickCount = 0; window.clickCount++; clearTimeout(window.clickTimer); window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); if (window.clickCount === 5) { const isAdmin = document.body.classList.toggle('admin-mode'); document.getElementById('adminMark').style.display = isAdmin ? 'inline' : 'none'; showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); window.clickCount = 0; } }
+    // 🛠️ 관리자 모드 활성화 (제목 5회 연속 클릭)
+    function triggerAdminMode() { 
+        if (!window.clickCount) window.clickCount = 0; 
+        window.clickCount++; 
+        clearTimeout(window.clickTimer); 
+        window.clickTimer = setTimeout(() => { window.clickCount = 0; }, 2000); 
+        if (window.clickCount === 5) { 
+            const isAdmin = document.body.classList.toggle('admin-mode'); 
+            showToast(isAdmin ? "🛠️ 관리자 모드 활성화" : "🔒 관리자 모드 해제", 'success'); 
+            window.clickCount = 0; 
+        } 
+    }
+
+    // 🛠️ 관리자 모달 제어
+    function openAdminModal() {
+        document.getElementById('editCoins').value = state.coins;
+        document.getElementById('editMatched').value = state.totalMatchedCount;
+        document.getElementById('editGifts').value = state.giftCount;
+        document.getElementById('editMaxGauge').value = state.maxGauge;
+        document.getElementById('adminModal').style.display = 'block';
+    }
+
+    function closeAdminModal() {
+        document.getElementById('adminModal').style.display = 'none';
+    }
+
+    function saveAdminValues() {
+        state.coins = Math.max(0, parseInt(document.getElementById('editCoins').value, 10) || 0);
+        state.totalMatchedCount = Math.max(0, parseInt(document.getElementById('editMatched').value, 10) || 0);
+        state.giftCount = Math.max(0, parseInt(document.getElementById('editGifts').value, 10) || 0);
+        state.maxGauge = Math.max(10, parseInt(document.getElementById('editMaxGauge').value, 10) || 500);
+
+        updateUI(true);
+        closeAdminModal();
+        showToast("✅ 보상 수치가 즉시 변경되었습니다!", "success");
+    }
     
     function showToast(message, type = 'info') { 
         const popup = document.getElementById('resetPopup'); 
@@ -321,8 +321,9 @@
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     
+    // 문제 CSV 데이터만 로딩 (코인/선물은 건드리지 않음)
     async function fetchSheetData() { 
-        await syncFromCloud(); 
+        updateUI(false); 
         try { 
             const res = await fetch(`${sheetUrl}&cb=${Date.now()}`); 
             const text = await res.text(); 
@@ -335,7 +336,7 @@
             }).filter(d => d); 
             renderMenu(); 
 
-            // 🟢 탈주 깃발 감지: 게이지 30칸 차감 및 버튼 없는 토스트 팝업('info')
+            // 탈주 깃발 검사: 게이지 30칸 차감
             const runaway = JSON.parse(localStorage.getItem('woojin_study_playing'));
             if (runaway && runaway.active) {
                 localStorage.removeItem('woojin_study_playing');
@@ -349,7 +350,7 @@
             }
 
         } catch (e) { 
-            alert("데이터 로딩 실패!"); 
+            console.log("시트 로딩 실패: 오프라인 모드로 실행"); 
         } 
     }
 
@@ -365,7 +366,6 @@
             const cleanA = a.title.trim(); const cleanB = b.title.trim();
             const nameA = cleanA + modePrefix, nameB = cleanB + modePrefix;
 
-            // 0순위: 오늘 완료된 과목(잠김)은 뒤로 보냄
             const maxLimit = (modePrefix === "_review" ? 2 : 1);
             const isLockedA = (dailyLimitDB.counts[nameA] || 0) >= maxLimit;
             const isLockedB = (dailyLimitDB.counts[nameB] || 0) >= maxLimit;
@@ -483,7 +483,6 @@
         document.getElementById('gamePage').style.display = 'flex'; 
         document.getElementById('topHomeBtn').style.visibility = 'hidden'; 
 
-        // 🟢 학습 모드 시작 시 탈주 감지 깃발 등록
         if (!isReview) {
             localStorage.setItem('woojin_study_playing', JSON.stringify({ active: true, title: title }));
         }
@@ -593,7 +592,6 @@
                         dailyLimitDB.counts[key] = (dailyLimitDB.counts[key] || 0) + 1; 
                         localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
 
-                        // 🟢 정상 완주 시 탈주 깃발 삭제
                         if (!window.isReviewMode) {
                             localStorage.removeItem('woojin_study_playing');
                         }

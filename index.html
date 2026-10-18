@@ -605,9 +605,9 @@
                             if(window.isReviewMode) { 
                                 perfectDB[key] = (perfectDB[key] || 0) + 1; 
                                 if(perfectDB[key] >= 5) { 
-                                    state.coins += 100; 
-                                    animateCoinIncrease(100); 
-                                    showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 100코인 획득! 🪙`, "success"); 
+                                    state.coins += 50; 
+                                    animateCoinIncrease(50); 
+                                    showToast(`🔥 역시 우진이야!\n[${cleanName}] 5회 만점 달성!\n보너스 50코인 획득! 🪙`, "success"); 
                                     delete wrongDB[cleanName]; 
                                     delete tryDB[cleanName]; 
                                     perfectDB[key] = 0; 
@@ -617,9 +617,9 @@
                                     showToast(`💯 [${cleanName}] 백점 만점!\n(만점 누적: ${perfectDB[key]}/5회)`, "success"); 
                                 } 
                             } else { 
-                                state.coins += 100; 
-                                animateCoinIncrease(100); 
-                                showToast(`💯 우진이 최고! 만점 성공!\n공부 코인 100개 획득! 🪙`, "success"); 
+                                state.coins += 50; 
+                                animateCoinIncrease(50); 
+                                showToast(`💯 우진이 최고! 만점 성공!\n공부 50코인 획득! 🪙`, "success"); 
                             } 
                         } else { 
                             showToast(`👍 [${cleanName}] 완료!`, "info"); 

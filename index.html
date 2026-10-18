@@ -204,14 +204,14 @@
     function saveWalletLocal() {
         if (state.totalMatchedCount >= state.maxGauge) { 
             state.giftCount += 1; 
-            state.coins += 500; 
+            state.coins += 100; 
             state.totalMatchedCount = 0; 
             document.getElementById('giftCount').innerText = state.giftCount; 
             document.getElementById('gaugeFill').style.width = '0%'; 
-            animateCoinIncrease(500); 
+            animateCoinIncrease(100); 
             playSound('master'); 
             confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
-            showToast("✨ 우진아 대단해! 선물 1개와 500코인 획득!!", "success"); 
+            showToast("✨ 우진아 대단해! 선물 1개와 100코인 획득!!", "success"); 
         } 
         localStorage.setItem('woojin_wallet_local', JSON.stringify({
             coins: state.coins,

@@ -130,7 +130,7 @@
     // 단어 데이터만 읽어오는 스프레드시트 CSV URL
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT3vqts3wY7dCnxbXq1pedePNTOH32_sNnxqAgqx4EIYtaTok3NU-HpwdYOaNIdWFvogYEd6JI1pst1/pub?output=csv";
 
-    const todayStr = new Date().toLocaleDateString();
+    let todayStr = new Date().toLocaleDateString();
     let dailyLog = JSON.parse(localStorage.getItem('woojin_daily_log')) || { date: "", trials: 0, hits: 0 };
     let sessionStats = { trials: 0, hits: 0 };
     if (dailyLog.date !== todayStr) { dailyLog = { date: todayStr, trials: 0, hits: 0 }; localStorage.setItem('woojin_daily_log', JSON.stringify(dailyLog)); }
@@ -166,7 +166,7 @@
     let tryDB = JSON.parse(localStorage.getItem('woojin_try_v1')) || {};
     let lastCountsDB = JSON.parse(localStorage.getItem('woojin_last_counts_v1')) || {};
 
-    let currentActiveTitle = ""; let lastTime = 0;
+    let inputLocked = false; let currentActiveTitle = ""; let lastTime = 0;
 
     if (dailyLimitDB.date !== todayStr) { dailyLimitDB = { date: todayStr, counts: {} }; localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB)); }
 
@@ -210,7 +210,7 @@
             document.getElementById('gaugeFill').style.width = '0%'; 
             animateCoinIncrease(100); 
             playSound('master'); 
-            confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); 
+            try { if (typeof confetti === 'function') confetti({ particleCount: 250, spread: 80, origin: { y: 0.6 } }); } catch (e) {} 
             showToast("✨ 우진아 대단해! 선물 1개와 100코인 획득!!", "success"); 
         } 
         localStorage.setItem('woojin_wallet_local', JSON.stringify({
@@ -318,6 +318,7 @@
         }; 
     }
 
+    function escapeHTML(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
     function parseCSV(text) { return text.split('\n').map(row => { let cols = []; let current = ""; let inQuotes = false; for (let i = 0; i < row.length; i++) { if (row[i] === '"') inQuotes = !inQuotes; else if (row[i] === ',' && !inQuotes) { cols.push(current); current = ""; } else current += row[i]; } cols.push(current); return cols; }); }
     function applySmartFontSize(el) { let size = 1.35; el.style.fontSize = size + "rem"; while (el.scrollHeight > el.clientHeight && size > 1.0) { size -= 0.05; el.style.fontSize = size + "rem"; } }
     
@@ -331,7 +332,7 @@
             gameData = rows.map(row => { 
                 if (!row[0] || !row[2]) return null; 
                 const rawData = row[2].trim().endsWith(';') ? row[2] : row[2] + ';'; 
-                const items = rawData.split(';').map(i => { const p = i.split('/'); return p.length >= 2 ? { t: p[0].trim(), d: p[1].trim() } : null; }).filter(i => i); 
+                const items = rawData.split(';').map(i => { const idx = i.indexOf('/'); if (idx < 0) return null; const t = i.slice(0, idx).trim(), d = i.slice(idx + 1).trim(); return (t && d) ? { t, d } : null; }).filter(i => i); 
                 return items.length > 0 ? { title: row[0].trim(), icon: (row[1] || "📚").trim(), items } : null; 
             }).filter(d => d); 
             renderMenu(); 
@@ -400,7 +401,21 @@
         });
     }
 
+    function checkDayRollover() {
+        const now = new Date().toLocaleDateString();
+        if (now === todayStr) return;
+        todayStr = now;
+        dailyLimitDB = { date: todayStr, counts: {} };
+        localStorage.setItem('woojin_daily_limit_v3', JSON.stringify(dailyLimitDB));
+        dailyLog = { date: todayStr, trials: 0, hits: 0 };
+        updateStatUI();
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && document.getElementById('mainPage').style.display !== 'none') renderMenu();
+    });
+
     function renderMenu() {
+        checkDayRollover();
         const studyGrid = document.getElementById('studyGrid'), reviewGrid = document.getElementById('reviewGrid');
         studyGrid.innerHTML = ''; reviewGrid.innerHTML = '';
         
@@ -422,13 +437,14 @@
             const d = document.createElement('div'); d.className = 'mode-card' + (isLocked ? ' locked' : ''); 
             d.innerHTML = `
                 ${hasUpdate ? '<div class="update-badge">NEW</div>' : ''}
-                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'study')">×</div>
-                <div class="icon-area">${mode.icon}</div>
-                <div class="title">${cleanName}</div>
+                <div class="delete-btn">×</div>
+                <div class="icon-area">${escapeHTML(mode.icon)}</div>
+                <div class="title">${escapeHTML(cleanName)}</div>
                 <div class="info-badge">📋 ${currentItemCount}쌍</div>
                 <div class="info-badge">📅 ${doneDB[sKey] || '미완료'}</div>
                 <div class="info-badge">🎯 ${sScore !== undefined ? sScore + '%' : '미완료'}</div>
             `; 
+            d.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); openResetPopup(e, cleanName, 'study'); };
             d.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 if (idx > 0) { 
@@ -454,15 +470,16 @@
             const perfectCount = perfectDB[rKey] || 0;
             
             r.innerHTML = `
-                <div class="delete-btn" onclick="event.stopPropagation(); openResetPopup(event, '${cleanName}', 'review')">×</div>
-                <div class="icon-area">${mode.icon}</div>
-                <div class="title">${cleanName}</div>
+                <div class="delete-btn">×</div>
+                <div class="icon-area">${escapeHTML(mode.icon)}</div>
+                <div class="title">${escapeHTML(cleanName)}</div>
                 <div class="info-badge">📋 ${rItems.length}쌍</div>
                 <div class="info-badge">🥇 ${perfectCount} / 5회</div>
                 <div class="info-badge">🚀 도전: ${tryDB[cleanName] || 0}회</div>
                 <div class="info-badge">📅 ${doneDB[rKey] || "미완료"}</div>
                 <div class="info-badge">🎯 ${rScore !== undefined ? rScore + '%' : '미완료'}</div>
             `; 
+            r.querySelector('.delete-btn').onclick = (e) => { e.stopPropagation(); openResetPopup(e, cleanName, 'review'); };
             r.onclick = () => { 
                 if (isLocked) { showToast("내일 또 만나요! 😊", 'success'); return; } 
                 state.isPerfect = true; currentActiveTitle = cleanName; 
@@ -537,7 +554,7 @@
     }
 
     function selectCard(item, type, el) { 
-        if(el.classList.contains('matched') || el.classList.contains('wrong-impact')) return; 
+        if(inputLocked || el.classList.contains('matched') || el.classList.contains('wrong-impact')) return; 
         playSound('click'); 
         if(type === 'term') { 
             if(state.selectedTerm && state.selectedTerm.el === el) { 
@@ -629,7 +646,7 @@
                     } 
                 } 
             } else { 
-                playSound('wrong'); 
+                playSound('wrong'); inputLocked = true; 
                 t.el.classList.add('wrong-impact'); 
                 d.el.classList.add('wrong-impact'); 
                 state.isPerfect = false; 
@@ -652,7 +669,7 @@
                 } 
                 setTimeout(() => { 
                     t.el.classList.remove('selected', 'wrong-impact'); 
-                    d.el.classList.remove('selected', 'wrong-impact'); 
+                    d.el.classList.remove('selected', 'wrong-impact'); inputLocked = false; 
                     state.selectedTerm = state.selectedDef = null; 
                 }, 400); 
             } 
